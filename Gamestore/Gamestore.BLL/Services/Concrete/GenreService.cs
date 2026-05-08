@@ -33,6 +33,8 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper)
             throw new ValidationException($"Genre with name '{dto.Genre.Name}' already exists.");
         }
 
+        await ValidateParentGenreAsync(dto.Genre.ParentGenreId);
+
         var genre = new Genre
         {
             Id = Guid.NewGuid(),
@@ -51,6 +53,15 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper)
         var genre = await UnitOfWork.Genres.GetByIdAsync(dto.Genre.Id)
             ?? throw new NotFoundException(nameof(Genre), dto.Genre.Id);
 
+        var existing = await UnitOfWork.Genres.GetSingleAsync(
+            g => g.Name == dto.Genre.Name && g.Id != dto.Genre.Id);
+        if (existing != null)
+        {
+            throw new ValidationException($"Genre with name '{dto.Genre.Name}' already exists.");
+        }
+
+        await ValidateParentGenreAsync(dto.Genre.ParentGenreId);
+
         genre.Name = dto.Genre.Name;
         genre.ParentGenreId = dto.Genre.ParentGenreId;
 
@@ -58,5 +69,16 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper)
         await UnitOfWork.SaveChangesAsync();
 
         return Mapper.Map<GenreDto>(genre);
+    }
+
+    private async Task ValidateParentGenreAsync(Guid? parentGenreId)
+    {
+        if (parentGenreId == null)
+        {
+            return;
+        }
+
+        _ = await UnitOfWork.Genres.GetByIdAsync(parentGenreId.Value)
+            ?? throw new ValidationException($"Parent genre with id '{parentGenreId}' not found.");
     }
 }

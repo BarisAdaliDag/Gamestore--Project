@@ -44,6 +44,13 @@ public class PlatformService(IUnitOfWork unitOfWork, IMapper mapper)
         var platform = await UnitOfWork.Platforms.GetByIdAsync(dto.Platform.Id)
             ?? throw new NotFoundException(nameof(Platform), dto.Platform.Id);
 
+        var existing = await UnitOfWork.Platforms.GetSingleAsync(
+            p => p.Type == dto.Platform.Type && p.Id != dto.Platform.Id);
+        if (existing != null)
+        {
+            throw new ValidationException($"Platform with type '{dto.Platform.Type}' already exists.");
+        }
+
         platform.Type = dto.Platform.Type;
 
         UnitOfWork.Platforms.Update(platform);

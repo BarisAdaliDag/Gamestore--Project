@@ -51,6 +51,8 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
             throw new ValidationException($"Game with key '{key}' already exists.");
         }
 
+        var (genreIds, platformIds) = await ValidateRelationIdsAsync(dto.Genres, dto.Platforms);
+
         var game = new Game
         {
             Id = Guid.NewGuid(),
@@ -59,12 +61,12 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
             Description = dto.Game.Description,
         };
 
-        foreach (var genreId in dto.Genres)
+        foreach (var genreId in genreIds)
         {
             game.GameGenres.Add(new GameGenre { GameId = game.Id, GenreId = genreId });
         }
 
-        foreach (var platformId in dto.Platforms)
+        foreach (var platformId in platformIds)
         {
             game.GamePlatforms.Add(new GamePlatform { GameId = game.Id, PlatformId = platformId });
         }
@@ -80,18 +82,26 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         var game = await UnitOfWork.Games.GetByIdWithDetailsAsync(dto.Game.Id)
             ?? throw new NotFoundException(nameof(Game), dto.Game.Id);
 
+        var keyOwner = await UnitOfWork.Games.GetByKeyAsync(dto.Game.Key);
+        if (keyOwner != null && keyOwner.Id != dto.Game.Id)
+        {
+            throw new ValidationException($"Key '{dto.Game.Key}' is already used by another game.");
+        }
+
+        var (genreIds, platformIds) = await ValidateRelationIdsAsync(dto.Genres, dto.Platforms);
+
         game.Name = dto.Game.Name;
         game.Key = dto.Game.Key;
         game.Description = dto.Game.Description;
 
         game.GameGenres.Clear();
-        foreach (var genreId in dto.Genres)
+        foreach (var genreId in genreIds)
         {
             game.GameGenres.Add(new GameGenre { GameId = game.Id, GenreId = genreId });
         }
 
         game.GamePlatforms.Clear();
-        foreach (var platformId in dto.Platforms)
+        foreach (var platformId in platformIds)
         {
             game.GamePlatforms.Add(new GamePlatform { GameId = game.Id, PlatformId = platformId });
         }
@@ -127,5 +137,36 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
     private static string GenerateKey(string name)
     {
         return name.ToLowerInvariant().Replace(" ", "-", StringComparison.Ordinal);
+    }
+
+    private async Task<(List<Guid> GenreIds, List<Guid> PlatformIds)> ValidateRelationIdsAsync(
+        ICollection<Guid> genreIds,
+        ICollection<Guid> platformIds)
+    {
+        var uniqueGenreIds = genreIds.Distinct().ToList();
+        if (uniqueGenreIds.Count != genreIds.Count)
+        {
+            throw new ValidationException("Duplicate genre ids are not allowed.");
+        }
+
+        var uniquePlatformIds = platformIds.Distinct().ToList();
+        if (uniquePlatformIds.Count != platformIds.Count)
+        {
+            throw new ValidationException("Duplicate platform ids are not allowed.");
+        }
+
+        foreach (var genreId in uniqueGenreIds)
+        {
+            _ = await UnitOfWork.Genres.GetByIdAsync(genreId)
+                ?? throw new ValidationException($"Genre with id '{genreId}' not found.");
+        }
+
+        foreach (var platformId in uniquePlatformIds)
+        {
+            _ = await UnitOfWork.Platforms.GetByIdAsync(platformId)
+                ?? throw new ValidationException($"Platform with id '{platformId}' not found.");
+        }
+
+        return (uniqueGenreIds, uniquePlatformIds);
     }
 }
