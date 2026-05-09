@@ -1,3 +1,4 @@
+using Gamestore.BLL.DependencyResolvers;
 using Gamestore.DAL;
 
 namespace Gamestore.API;
@@ -12,7 +13,10 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
-        builder.Services.AddDataAccessLayer(builder.Configuration);
+        // Custom Services (Sıralama önemli - hocanın yöntemi)
+        builder.Services.AddDataAccessLayer(builder.Configuration);  // 1. DAL (DbContext + Repos + UoW)
+        builder.Services.AddServiceLayer();                          // 2. BLL Services
+        builder.Services.AddDtoMapperService();                      // 3. AutoMapper
 
         var app = builder.Build();
 
