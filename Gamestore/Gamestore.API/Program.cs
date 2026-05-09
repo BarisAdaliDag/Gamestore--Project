@@ -1,3 +1,5 @@
+using Gamestore.API.MapperResolvers;
+using Gamestore.API.Middlewares;
 using Gamestore.BLL.DependencyResolvers;
 using Gamestore.DAL;
 
@@ -12,13 +14,24 @@ public class Program
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        builder.Services.AddResponseCaching();
 
-        // Custom Services (Sıralama önemli - hocanın yöntemi)
-        builder.Services.AddDataAccessLayer(builder.Configuration);  // 1. DAL (DbContext + Repos + UoW)
-        builder.Services.AddServiceLayer();                          // 2. BLL Services
-        builder.Services.AddDtoMapperService();                      // 3. AutoMapper
+        builder.Services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+                policy.AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod());
+        });
+
+        builder.Services.AddDataAccessLayer(builder.Configuration);
+        builder.Services.AddServiceLayer();
+        builder.Services.AddDtoMapperService();
+        builder.Services.AddVmMapperService();
 
         var app = builder.Build();
+
+        app.UseMiddleware<GlobalExceptionMiddleware>();
 
         if (app.Environment.IsDevelopment())
         {
@@ -27,6 +40,8 @@ public class Program
         }
 
         app.UseHttpsRedirection();
+        app.UseCors();
+        app.UseResponseCaching();
         app.UseAuthorization();
         app.MapControllers();
 
