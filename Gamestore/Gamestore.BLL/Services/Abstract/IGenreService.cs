@@ -1,9 +1,8 @@
 using Gamestore.BLL.DTOs.Genres;
-using Gamestore.Domain.Entities;
 
 namespace Gamestore.BLL.Services.Abstract;
 
-public interface IGenreService : IService<GenreDto, Genre>
+public interface IGenreService : IService<GenreDto>
 {
     Task<IEnumerable<GenreDto>> GetByParentIdAsync(Guid parentId);
 

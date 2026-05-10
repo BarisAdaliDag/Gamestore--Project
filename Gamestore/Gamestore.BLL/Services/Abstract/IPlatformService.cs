@@ -1,9 +1,8 @@
 using Gamestore.BLL.DTOs.Platforms;
-using Gamestore.Domain.Entities;
 
 namespace Gamestore.BLL.Services.Abstract;
 
-public interface IPlatformService : IService<PlatformDto, Platform>
+public interface IPlatformService : IService<PlatformDto>
 {
     Task<IEnumerable<PlatformDto>> GetByGameKeyAsync(string gameKey);
 

@@ -8,7 +8,7 @@ using MapsterMapper;
 namespace Gamestore.BLL.Services.Concrete;
 
 public abstract class BaseService<TDto, TEntity>(IUnitOfWork unitOfWork, IMapper mapper)
-    : IService<TDto, TEntity>
+    : IService<TDto>
     where TDto : class, IDto
     where TEntity : class
 {

@@ -1,9 +1,8 @@
 using Gamestore.BLL.DTOs.Games;
-using Gamestore.Domain.Entities;
 
 namespace Gamestore.BLL.Services.Abstract;
 
-public interface IGameService : IService<GameDto, Game>
+public interface IGameService : IService<GameDto>
 {
     Task<GameDto> GetByKeyAsync(string key);
 

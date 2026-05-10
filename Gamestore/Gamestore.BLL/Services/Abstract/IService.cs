@@ -2,9 +2,8 @@ using Gamestore.BLL.DTOs.Abstract;
 
 namespace Gamestore.BLL.Services.Abstract;
 
-public interface IService<TDto, TEntity>
+public interface IService<TDto>
     where TDto : class, IDto
-    where TEntity : class
 {
     Task<IEnumerable<TDto>> GetAllAsync();
 
