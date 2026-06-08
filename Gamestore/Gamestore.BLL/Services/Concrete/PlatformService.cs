@@ -24,7 +24,7 @@ public class PlatformService(IUnitOfWork unitOfWork, IMapper mapper)
         var existing = await UnitOfWork.Platforms.GetSingleAsync(p => p.Type == dto.Platform.Type);
         if (existing != null)
         {
-            throw new ValidationException($"Platform with type '{dto.Platform.Type}' already exists.");
+            throw new EntityAlreadyExistsException(nameof(Platform), "type", dto.Platform.Type);
         }
 
         var platform = new Platform
@@ -48,7 +48,7 @@ public class PlatformService(IUnitOfWork unitOfWork, IMapper mapper)
             p => p.Type == dto.Platform.Type && p.Id != dto.Platform.Id);
         if (existing != null)
         {
-            throw new ValidationException($"Platform with type '{dto.Platform.Type}' already exists.");
+            throw new EntityAlreadyExistsException(nameof(Platform), "type", dto.Platform.Type);
         }
 
         platform.Type = dto.Platform.Type;

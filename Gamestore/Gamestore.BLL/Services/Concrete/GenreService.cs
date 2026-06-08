@@ -30,7 +30,7 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper)
         var existing = await UnitOfWork.Genres.GetSingleAsync(g => g.Name == dto.Genre.Name);
         if (existing != null)
         {
-            throw new ValidationException($"Genre with name '{dto.Genre.Name}' already exists.");
+            throw new EntityAlreadyExistsException(nameof(Genre), "name", dto.Genre.Name);
         }
 
         await ValidateParentGenreAsync(dto.Genre.ParentGenreId);
@@ -57,7 +57,7 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper)
             g => g.Name == dto.Genre.Name && g.Id != dto.Genre.Id);
         if (existing != null)
         {
-            throw new ValidationException($"Genre with name '{dto.Genre.Name}' already exists.");
+            throw new EntityAlreadyExistsException(nameof(Genre), "name", dto.Genre.Name);
         }
 
         await ValidateParentGenreAsync(dto.Genre.ParentGenreId);

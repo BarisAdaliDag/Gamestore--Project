@@ -48,7 +48,7 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         var existing = await UnitOfWork.Games.GetByKeyAsync(key);
         if (existing != null)
         {
-            throw new ValidationException($"Game with key '{key}' already exists.");
+            throw new EntityAlreadyExistsException(nameof(Game), "key", key);
         }
 
         var (genreIds, platformIds) = await ValidateRelationIdsAsync(dto.Genres, dto.Platforms);
@@ -85,7 +85,7 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         var keyOwner = await UnitOfWork.Games.GetByKeyAsync(dto.Game.Key);
         if (keyOwner != null && keyOwner.Id != dto.Game.Id)
         {
-            throw new ValidationException($"Key '{dto.Game.Key}' is already used by another game.");
+            throw new EntityAlreadyExistsException(nameof(Game), "key", dto.Game.Key);
         }
 
         var (genreIds, platformIds) = await ValidateRelationIdsAsync(dto.Genres, dto.Platforms);
