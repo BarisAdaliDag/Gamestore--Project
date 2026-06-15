@@ -1,3 +1,4 @@
+using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Platforms;
 using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Platforms;
@@ -50,6 +51,7 @@ public class PlatformsController(
     }
 
     [HttpPost]
+    [ServiceFilter(typeof(ValidationFilter<CreatePlatformRequest>))]
     public async Task<ActionResult<PlatformResponse>> Create([FromBody] CreatePlatformRequest request)
     {
         var dto = _mapper.Map<CreatePlatformDto>(request);
@@ -60,6 +62,7 @@ public class PlatformsController(
     }
 
     [HttpPut]
+    [ServiceFilter(typeof(ValidationFilter<UpdatePlatformRequest>))]
     public async Task<ActionResult<PlatformResponse>> Update([FromBody] UpdatePlatformRequest request)
     {
         var dto = _mapper.Map<UpdatePlatformDto>(request);

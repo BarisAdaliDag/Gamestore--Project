@@ -1,3 +1,4 @@
+using Gamestore.API.DependencyResolvers;
 using Gamestore.API.MapperResolvers;
 using Gamestore.API.Middlewares;
 using Gamestore.BLL.DependencyResolvers;
@@ -28,6 +29,7 @@ public static class Program
         builder.Services.AddServiceLayer();
         builder.Services.AddDtoMapperService();
         builder.Services.AddVmMapperService();
+        builder.Services.AddValidationService();
 
         var app = builder.Build();
 

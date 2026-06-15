@@ -60,6 +60,11 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper)
             throw new EntityAlreadyExistsException(nameof(Genre), "name", dto.Genre.Name);
         }
 
+        if (dto.Genre.ParentGenreId == dto.Genre.Id)
+        {
+            throw new ValidationException("A genre cannot be its own parent.");
+        }
+
         await ValidateParentGenreAsync(dto.Genre.ParentGenreId);
 
         genre.Name = dto.Genre.Name;

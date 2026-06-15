@@ -1,3 +1,4 @@
+using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Genres;
 using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Genres;
@@ -60,6 +61,7 @@ public class GenresController(
     }
 
     [HttpPost]
+    [ServiceFilter(typeof(ValidationFilter<CreateGenreRequest>))]
     public async Task<ActionResult<GenreResponse>> Create([FromBody] CreateGenreRequest request)
     {
         var dto = _mapper.Map<CreateGenreDto>(request);
@@ -70,6 +72,7 @@ public class GenresController(
     }
 
     [HttpPut]
+    [ServiceFilter(typeof(ValidationFilter<UpdateGenreRequest>))]
     public async Task<ActionResult<GenreResponse>> Update([FromBody] UpdateGenreRequest request)
     {
         var dto = _mapper.Map<UpdateGenreDto>(request);
