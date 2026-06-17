@@ -1,6 +1,5 @@
 using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Genres;
-using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Genres;
 using Gamestore.BLL.DTOs.Genres;
 using Gamestore.BLL.Services.Abstract;
@@ -13,11 +12,9 @@ namespace Gamestore.API.Controllers;
 [Route("[controller]")]
 public class GenresController(
     IGenreService genreService,
-    IGameService gameService,
     IMapper mapper) : ControllerBase
 {
     private readonly IGenreService _genreService = genreService;
-    private readonly IGameService _gameService = gameService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
@@ -50,12 +47,12 @@ public class GenresController(
         return Ok(response);
     }
 
-    [HttpGet("{id:guid}/games")]
+    [HttpGet("~/games/{key}/genres")]
     [ResponseCache(Duration = 60)]
-    public async Task<ActionResult<IEnumerable<GameResponse>>> GetGamesByGenre(Guid id)
+    public async Task<ActionResult<IEnumerable<GenreResponse>>> GetByGameKey(string key)
     {
-        var dtos = await _gameService.GetByGenreIdAsync(id);
-        var response = _mapper.Map<IEnumerable<GameResponse>>(dtos);
+        var dtos = await _genreService.GetByGameKeyAsync(key);
+        var response = _mapper.Map<IEnumerable<GenreResponse>>(dtos);
 
         return Ok(response);
     }

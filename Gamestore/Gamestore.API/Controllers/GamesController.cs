@@ -1,8 +1,6 @@
 using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Games;
 using Gamestore.API.Models.Responses.Games;
-using Gamestore.API.Models.Responses.Genres;
-using Gamestore.API.Models.Responses.Platforms;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
@@ -14,13 +12,9 @@ namespace Gamestore.API.Controllers;
 [Route("[controller]")]
 public class GamesController(
     IGameService gameService,
-    IGenreService genreService,
-    IPlatformService platformService,
     IMapper mapper) : ControllerBase
 {
     private readonly IGameService _gameService = gameService;
-    private readonly IGenreService _genreService = genreService;
-    private readonly IPlatformService _platformService = platformService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
@@ -53,22 +47,22 @@ public class GamesController(
         return Ok(response);
     }
 
-    [HttpGet("{key}/genres")]
+    [HttpGet("~/genres/{id:guid}/games")]
     [ResponseCache(Duration = 60)]
-    public async Task<ActionResult<IEnumerable<GenreResponse>>> GetGenresByGameKey(string key)
+    public async Task<ActionResult<IEnumerable<GameResponse>>> GetByGenreId(Guid id)
     {
-        var dtos = await _genreService.GetByGameKeyAsync(key);
-        var response = _mapper.Map<IEnumerable<GenreResponse>>(dtos);
+        var dtos = await _gameService.GetByGenreIdAsync(id);
+        var response = _mapper.Map<IEnumerable<GameResponse>>(dtos);
 
         return Ok(response);
     }
 
-    [HttpGet("{key}/platforms")]
+    [HttpGet("~/platforms/{id:guid}/games")]
     [ResponseCache(Duration = 60)]
-    public async Task<ActionResult<IEnumerable<PlatformResponse>>> GetPlatformsByGameKey(string key)
+    public async Task<ActionResult<IEnumerable<GameResponse>>> GetByPlatformId(Guid id)
     {
-        var dtos = await _platformService.GetByGameKeyAsync(key);
-        var response = _mapper.Map<IEnumerable<PlatformResponse>>(dtos);
+        var dtos = await _gameService.GetByPlatformIdAsync(id);
+        var response = _mapper.Map<IEnumerable<GameResponse>>(dtos);
 
         return Ok(response);
     }

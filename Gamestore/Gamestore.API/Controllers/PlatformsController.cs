@@ -1,6 +1,5 @@
 using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Platforms;
-using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Platforms;
 using Gamestore.BLL.DTOs.Platforms;
 using Gamestore.BLL.Services.Abstract;
@@ -13,11 +12,9 @@ namespace Gamestore.API.Controllers;
 [Route("[controller]")]
 public class PlatformsController(
     IPlatformService platformService,
-    IGameService gameService,
     IMapper mapper) : ControllerBase
 {
     private readonly IPlatformService _platformService = platformService;
-    private readonly IGameService _gameService = gameService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
@@ -40,12 +37,12 @@ public class PlatformsController(
         return Ok(response);
     }
 
-    [HttpGet("{id:guid}/games")]
+    [HttpGet("~/games/{key}/platforms")]
     [ResponseCache(Duration = 60)]
-    public async Task<ActionResult<IEnumerable<GameResponse>>> GetGamesByPlatform(Guid id)
+    public async Task<ActionResult<IEnumerable<PlatformResponse>>> GetByGameKey(string key)
     {
-        var dtos = await _gameService.GetByPlatformIdAsync(id);
-        var response = _mapper.Map<IEnumerable<GameResponse>>(dtos);
+        var dtos = await _platformService.GetByGameKeyAsync(key);
+        var response = _mapper.Map<IEnumerable<PlatformResponse>>(dtos);
 
         return Ok(response);
     }
