@@ -7,6 +7,8 @@ public interface IRepository<T>
 {
     Task<IEnumerable<T>> GetAllAsync();
 
+    Task<int> CountAsync();
+
     Task<T?> GetByIdAsync(Guid id);
 
     Task<T?> GetSingleAsync(Expression<Func<T, bool>> predicate);

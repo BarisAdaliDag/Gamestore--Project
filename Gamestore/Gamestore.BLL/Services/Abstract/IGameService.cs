@@ -10,6 +10,8 @@ public interface IGameService : IService<GameDto>
 
     Task<IEnumerable<GameDto>> GetByPlatformIdAsync(Guid platformId);
 
+    Task<int> GetTotalCountAsync();
+
     Task<GameDto> CreateAsync(CreateGameDto dto);
 
     Task<GameDto> UpdateAsync(UpdateGameDto dto);

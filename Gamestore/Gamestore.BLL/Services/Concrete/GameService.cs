@@ -39,6 +39,11 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         return Mapper.Map<IEnumerable<GameDto>>(games);
     }
 
+    public async Task<int> GetTotalCountAsync()
+    {
+        return await UnitOfWork.Games.CountAsync();
+    }
+
     public async Task<GameDto> CreateAsync(CreateGameDto dto)
     {
         var key = string.IsNullOrWhiteSpace(dto.Game.Key)
