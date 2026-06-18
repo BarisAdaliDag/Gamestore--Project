@@ -121,4 +121,125 @@ public class GenreServiceTests
 
         await Assert.ThrowsAsync<NotFoundException>(() => _service.DeleteAsync(id));
     }
+
+    [Fact]
+    public async Task UpdateAsyncShouldUpdateGenreWhenDataIsValid()
+    {
+        var id = Guid.NewGuid();
+        var parentGenreId = Guid.NewGuid();
+        var genre = new Genre { Id = id, Name = "Action" };
+        var dto = new UpdateGenreDto
+        {
+            Genre = new GenreUpdateInfoDto
+            {
+                Id = id,
+                Name = "Adventure",
+                ParentGenreId = parentGenreId,
+            },
+        };
+
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(id))
+            .ReturnsAsync(genre);
+        _mockGenreRepository.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<Genre, bool>>>()))
+            .ReturnsAsync((Genre?)null);
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(parentGenreId))
+            .ReturnsAsync(new Genre { Id = parentGenreId, Name = "Parent" });
+        _mockUnitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync())
+            .ReturnsAsync(1);
+        _mockMapper.Setup(mapper => mapper.Map<GenreDto>(genre))
+            .Returns(new GenreDto { Id = id, Name = "Adventure", ParentGenreId = parentGenreId });
+
+        var result = await _service.UpdateAsync(dto);
+
+        Assert.Equal("Adventure", result.Name);
+        Assert.Equal(parentGenreId, result.ParentGenreId);
+        _mockGenreRepository.Verify(repository => repository.Update(genre), Times.Once);
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldThrowNotFoundExceptionWhenGenreDoesNotExist()
+    {
+        var id = Guid.NewGuid();
+        var dto = new UpdateGenreDto
+        {
+            Genre = new GenreUpdateInfoDto { Id = id, Name = "Adventure" },
+        };
+
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(id))
+            .ReturnsAsync((Genre?)null);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => _service.UpdateAsync(dto));
+
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldThrowEntityAlreadyExistsExceptionWhenNameAlreadyExists()
+    {
+        var id = Guid.NewGuid();
+        var dto = new UpdateGenreDto
+        {
+            Genre = new GenreUpdateInfoDto { Id = id, Name = "RPG" },
+        };
+
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(id))
+            .ReturnsAsync(new Genre { Id = id, Name = "Action" });
+        _mockGenreRepository.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<Genre, bool>>>()))
+            .ReturnsAsync(new Genre { Id = Guid.NewGuid(), Name = "RPG" });
+
+        await Assert.ThrowsAsync<EntityAlreadyExistsException>(() => _service.UpdateAsync(dto));
+
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldThrowValidationExceptionWhenGenreIsItsOwnParent()
+    {
+        var id = Guid.NewGuid();
+        var dto = new UpdateGenreDto
+        {
+            Genre = new GenreUpdateInfoDto { Id = id, Name = "Action", ParentGenreId = id },
+        };
+
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(id))
+            .ReturnsAsync(new Genre { Id = id, Name = "Action" });
+        _mockGenreRepository.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<Genre, bool>>>()))
+            .ReturnsAsync((Genre?)null);
+
+        await Assert.ThrowsAsync<ValidationException>(() => _service.UpdateAsync(dto));
+
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldThrowValidationExceptionWhenParentGenreDoesNotExist()
+    {
+        var id = Guid.NewGuid();
+        var parentGenreId = Guid.NewGuid();
+        var dto = new UpdateGenreDto
+        {
+            Genre = new GenreUpdateInfoDto
+            {
+                Id = id,
+                Name = "Action",
+                ParentGenreId = parentGenreId,
+            },
+        };
+
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(id))
+            .ReturnsAsync(new Genre { Id = id, Name = "Action" });
+        _mockGenreRepository.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<Genre, bool>>>()))
+            .ReturnsAsync((Genre?)null);
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(parentGenreId))
+            .ReturnsAsync((Genre?)null);
+
+        await Assert.ThrowsAsync<ValidationException>(() => _service.UpdateAsync(dto));
+
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
 }

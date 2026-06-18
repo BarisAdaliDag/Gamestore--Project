@@ -150,4 +150,132 @@ public class GameServiceTests
 
         mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
     }
+
+    [Fact]
+    public async Task GetByGenreIdAsyncShouldReturnMappedGames()
+    {
+        var genreId = Guid.NewGuid();
+        var games = new List<Game>
+        {
+            new() { Id = Guid.NewGuid(), Name = "Halo", Key = "halo" },
+            new() { Id = Guid.NewGuid(), Name = "Doom", Key = "doom" },
+        };
+        var gameDtos = games.Select(game => new GameDto
+        {
+            Id = game.Id,
+            Name = game.Name,
+            Key = game.Key,
+        });
+
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByGenreIdAsync(genreId))
+            .ReturnsAsync(games);
+
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
+            .Returns(mockGameRepository.Object);
+
+        var mockMapper = new Mock<IMapper>();
+        mockMapper.Setup(mapper => mapper.Map<IEnumerable<GameDto>>(games))
+            .Returns(gameDtos);
+
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        var result = await service.GetByGenreIdAsync(genreId);
+
+        Assert.Equal(2, result.Count());
+    }
+
+    [Fact]
+    public async Task DeleteByKeyAsyncShouldDeleteGameAndCallSaveChanges()
+    {
+        var key = "halo";
+        var game = new Game { Id = Guid.NewGuid(), Name = "Halo", Key = key };
+
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByKeyAsync(key))
+            .ReturnsAsync(game);
+
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
+            .Returns(mockGameRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync())
+            .ReturnsAsync(1);
+
+        var mockMapper = new Mock<IMapper>();
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        await service.DeleteByKeyAsync(key);
+
+        mockGameRepository.Verify(repository => repository.Delete(game), Times.Once);
+        mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteByKeyAsyncShouldThrowNotFoundExceptionWhenGameDoesNotExist()
+    {
+        var key = "missing-game";
+
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByKeyAsync(key))
+            .ReturnsAsync((Game?)null);
+
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
+            .Returns(mockGameRepository.Object);
+
+        var mockMapper = new Mock<IMapper>();
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.DeleteByKeyAsync(key));
+
+        mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task GenerateGameFileAsyncShouldReturnTextFileWhenGameExists()
+    {
+        var key = "halo";
+        var game = new Game { Id = Guid.NewGuid(), Name = "Halo", Key = key };
+        var gameDto = new GameDto { Id = game.Id, Name = "Halo", Key = key };
+
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByKeyAsync(key))
+            .ReturnsAsync(game);
+
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
+            .Returns(mockGameRepository.Object);
+
+        var mockMapper = new Mock<IMapper>();
+        mockMapper.Setup(mapper => mapper.Map<GameDto>(game))
+            .Returns(gameDto);
+
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        var (fileBytes, fileName) = await service.GenerateGameFileAsync(key);
+
+        Assert.NotEmpty(fileBytes);
+        Assert.StartsWith("Halo_", fileName, StringComparison.Ordinal);
+        Assert.EndsWith(".txt", fileName, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GenerateGameFileAsyncShouldThrowNotFoundExceptionWhenGameDoesNotExist()
+    {
+        var key = "missing-game";
+
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByKeyAsync(key))
+            .ReturnsAsync((Game?)null);
+
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
+            .Returns(mockGameRepository.Object);
+
+        var mockMapper = new Mock<IMapper>();
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.GenerateGameFileAsync(key));
+    }
 }

@@ -99,4 +99,68 @@ public class PlatformServiceTests
 
         await Assert.ThrowsAsync<NotFoundException>(() => _service.DeleteAsync(id));
     }
+
+    [Fact]
+    public async Task UpdateAsyncShouldUpdatePlatformWhenTypeIsUnique()
+    {
+        var id = Guid.NewGuid();
+        var platform = new Platform { Id = id, Type = "Desktop" };
+        var dto = new UpdatePlatformDto
+        {
+            Platform = new PlatformUpdateInfoDto { Id = id, Type = "PC" },
+        };
+
+        _mockPlatformRepository.Setup(repository => repository.GetByIdAsync(id))
+            .ReturnsAsync(platform);
+        _mockPlatformRepository.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<Platform, bool>>>()))
+            .ReturnsAsync((Platform?)null);
+        _mockUnitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync())
+            .ReturnsAsync(1);
+        _mockMapper.Setup(mapper => mapper.Map<PlatformDto>(platform))
+            .Returns(new PlatformDto { Id = id, Type = "PC" });
+
+        var result = await _service.UpdateAsync(dto);
+
+        Assert.Equal("PC", result.Type);
+        _mockPlatformRepository.Verify(repository => repository.Update(platform), Times.Once);
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldThrowNotFoundExceptionWhenPlatformDoesNotExist()
+    {
+        var id = Guid.NewGuid();
+        var dto = new UpdatePlatformDto
+        {
+            Platform = new PlatformUpdateInfoDto { Id = id, Type = "PC" },
+        };
+
+        _mockPlatformRepository.Setup(repository => repository.GetByIdAsync(id))
+            .ReturnsAsync((Platform?)null);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => _service.UpdateAsync(dto));
+
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldThrowEntityAlreadyExistsExceptionWhenTypeAlreadyExists()
+    {
+        var id = Guid.NewGuid();
+        var dto = new UpdatePlatformDto
+        {
+            Platform = new PlatformUpdateInfoDto { Id = id, Type = "Console" },
+        };
+
+        _mockPlatformRepository.Setup(repository => repository.GetByIdAsync(id))
+            .ReturnsAsync(new Platform { Id = id, Type = "Desktop" });
+        _mockPlatformRepository.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<Platform, bool>>>()))
+            .ReturnsAsync(new Platform { Id = Guid.NewGuid(), Type = "Console" });
+
+        await Assert.ThrowsAsync<EntityAlreadyExistsException>(() => _service.UpdateAsync(dto));
+
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
 }
