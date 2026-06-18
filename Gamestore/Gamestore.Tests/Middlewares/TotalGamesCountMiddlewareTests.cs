@@ -2,39 +2,75 @@ using Gamestore.API.Middlewares;
 using Gamestore.BLL.Services.Abstract;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.Caching.Memory;
 using Moq;
 
 namespace Gamestore.Tests.Middlewares;
 
-public class TotalGamesCountMiddlewareTests
+public class TotalGamesCountMiddlewareTests : IDisposable
 {
+    private readonly Mock<IGameService> _mockGameService;
+    private readonly MemoryCache _cache;
+
+    public TotalGamesCountMiddlewareTests()
+    {
+        _mockGameService = new Mock<IGameService>();
+        _cache = new MemoryCache(new MemoryCacheOptions());
+    }
+
+    public void Dispose()
+    {
+        _cache.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
     [Fact]
     public async Task InvokeAsyncShouldAddTotalGamesHeader()
     {
-        var mockGameService = new Mock<IGameService>();
-        mockGameService.Setup(service => service.GetTotalCountAsync())
+        _mockGameService.Setup(service => service.GetTotalCountAsync())
             .ReturnsAsync(42);
 
+        var context = await RunMiddlewareAsync();
+
+        Assert.True(context.Response.Headers.ContainsKey("x-total-numbers-of-games"));
+        Assert.Equal("42", context.Response.Headers["x-total-numbers-of-games"].ToString());
+    }
+
+    [Fact]
+    public async Task InvokeAsyncShouldCallServiceOnFirstRequest()
+    {
+        _mockGameService.Setup(service => service.GetTotalCountAsync())
+            .ReturnsAsync(10);
+
+        await RunMiddlewareAsync();
+
+        _mockGameService.Verify(service => service.GetTotalCountAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task InvokeAsyncShouldUseCacheOnSecondRequest()
+    {
+        _mockGameService.Setup(service => service.GetTotalCountAsync())
+            .ReturnsAsync(10);
+
+        await RunMiddlewareAsync();
+        await RunMiddlewareAsync();
+
+        _mockGameService.Verify(service => service.GetTotalCountAsync(), Times.Once);
+    }
+
+    private async Task<HttpContext> RunMiddlewareAsync()
+    {
         var responseFeature = new CapturingResponseFeature();
         var context = new DefaultHttpContext();
         context.Features.Set<IHttpResponseFeature>(responseFeature);
 
-        var nextCalled = false;
-        async Task Next(HttpContext httpContext)
-        {
-            nextCalled = true;
-            await httpContext.Response.WriteAsync(string.Empty);
-        }
+        var middleware = new TotalGamesCountMiddleware(_ => Task.CompletedTask);
 
-        var middleware = new TotalGamesCountMiddleware(Next);
-
-        await middleware.InvokeAsync(context, mockGameService.Object);
+        await middleware.InvokeAsync(context, _mockGameService.Object, _cache);
         await responseFeature.FireOnStartingAsync();
 
-        Assert.True(nextCalled);
-        Assert.True(context.Response.Headers.ContainsKey("x-total-numbers-of-games"));
-        Assert.Equal("42", context.Response.Headers["x-total-numbers-of-games"].ToString());
-        mockGameService.Verify(service => service.GetTotalCountAsync(), Times.Once);
+        return context;
     }
 
     private sealed class CapturingResponseFeature : IHttpResponseFeature
