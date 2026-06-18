@@ -22,7 +22,8 @@ public static class Program
             options.AddDefaultPolicy(policy =>
                 policy.AllowAnyOrigin()
                     .AllowAnyHeader()
-                    .AllowAnyMethod());
+                    .AllowAnyMethod()
+                    .WithExposedHeaders("x-total-numbers-of-games"));
         });
 
         builder.Services.AddDataAccessLayer(builder.Configuration);
@@ -34,6 +35,7 @@ public static class Program
         var app = builder.Build();
 
         app.UseMiddleware<GlobalExceptionMiddleware>();
+        app.UseMiddleware<TotalGamesCountMiddleware>();
 
         if (app.Environment.IsDevelopment())
         {

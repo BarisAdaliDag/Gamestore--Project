@@ -76,4 +76,78 @@ public class GameServiceTests
 
         await Assert.ThrowsAsync<NotFoundException>(() => service.GetByKeyAsync(key));
     }
+
+    [Fact]
+    public async Task CreateAsyncShouldCreateGameAndCallSaveChanges()
+    {
+        var genreId = Guid.NewGuid();
+        var platformId = Guid.NewGuid();
+        var dto = new CreateGameDto
+        {
+            Game = new GameCreateInfoDto { Name = "New Game", Key = "new-game" },
+            Genres = [genreId],
+            Platforms = [platformId],
+        };
+
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByKeyAsync("new-game"))
+            .ReturnsAsync((Game?)null);
+
+        var mockGenreRepository = new Mock<IGenreRepository>();
+        mockGenreRepository.Setup(repository => repository.GetByIdAsync(genreId))
+            .ReturnsAsync(new Genre { Id = genreId, Name = "Action" });
+
+        var mockPlatformRepository = new Mock<IPlatformRepository>();
+        mockPlatformRepository.Setup(repository => repository.GetByIdAsync(platformId))
+            .ReturnsAsync(new Platform { Id = platformId, Type = "PC" });
+
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
+            .Returns(mockGameRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Genres)
+            .Returns(mockGenreRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Platforms)
+            .Returns(mockPlatformRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync())
+            .ReturnsAsync(1);
+
+        var mockMapper = new Mock<IMapper>();
+        mockMapper.Setup(mapper => mapper.Map<GameDto>(It.IsAny<Game>()))
+            .Returns(new GameDto { Name = "New Game", Key = "new-game" });
+
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        var result = await service.CreateAsync(dto);
+
+        Assert.NotNull(result);
+        Assert.Equal("new-game", result.Key);
+        mockGameRepository.Verify(repository => repository.AddAsync(It.IsAny<Game>()), Times.Once);
+        mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsyncShouldThrowEntityAlreadyExistsExceptionWhenKeyAlreadyExists()
+    {
+        var dto = new CreateGameDto
+        {
+            Game = new GameCreateInfoDto { Name = "Existing", Key = "existing-game" },
+            Genres = [],
+            Platforms = [],
+        };
+
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByKeyAsync("existing-game"))
+            .ReturnsAsync(new Game { Name = "Existing", Key = "existing-game" });
+
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
+            .Returns(mockGameRepository.Object);
+
+        var mockMapper = new Mock<IMapper>();
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        await Assert.ThrowsAsync<EntityAlreadyExistsException>(() => service.CreateAsync(dto));
+
+        mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
 }
