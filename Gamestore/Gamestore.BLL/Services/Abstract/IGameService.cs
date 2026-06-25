@@ -7,6 +7,8 @@ public interface IGameService : IService<GameDto>
 {
     Task<GameDto> GetByKeyAsync(string key);
 
+    Task<PagedResultDto<GameDto>> GetFilteredAsync(GameFilterDto filter);
+
     Task<IEnumerable<GameDto>> GetByGenreIdAsync(Guid genreId);
 
     Task<PagedResultDto<GameDto>> GetByGenreIdAsync(Guid genreId, PaginationParamsDto paginationParams);

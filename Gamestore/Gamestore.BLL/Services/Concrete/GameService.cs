@@ -28,6 +28,24 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         return Mapper.Map<GameDto>(game);
     }
 
+    public async Task<PagedResultDto<GameDto>> GetFilteredAsync(GameFilterDto filter)
+    {
+        var (games, totalCount) = await UnitOfWork.Games.GetFilteredPagedAsync(
+            filter.Page,
+            filter.Size,
+            filter.Name,
+            filter.GenreId,
+            filter.PlatformId);
+
+        return new PagedResultDto<GameDto>
+        {
+            Items = Mapper.Map<IEnumerable<GameDto>>(games),
+            CurrentPage = filter.Page,
+            PageSize = filter.Size,
+            TotalCount = totalCount,
+        };
+    }
+
     public async Task<IEnumerable<GameDto>> GetByGenreIdAsync(Guid genreId)
     {
         var games = await UnitOfWork.Games.GetByGenreIdAsync(genreId);

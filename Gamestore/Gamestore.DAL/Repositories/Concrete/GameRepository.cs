@@ -28,6 +28,41 @@ public class GameRepository(GamestoreDbContext context) : Repository<Game>(conte
             .FirstOrDefaultAsync(g => g.Key == key);
     }
 
+    public async Task<(IEnumerable<Game> Games, int TotalCount)> GetFilteredPagedAsync(
+        int page,
+        int size,
+        string? name = null,
+        Guid? genreId = null,
+        Guid? platformId = null)
+    {
+        var query = DbSet.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            query = query.Where(g => g.Name.Contains(name));
+        }
+
+        if (genreId.HasValue)
+        {
+            query = query.Where(g => g.GameGenres.Any(gg => gg.GenreId == genreId.Value));
+        }
+
+        if (platformId.HasValue)
+        {
+            query = query.Where(g => g.GamePlatforms.Any(gp => gp.PlatformId == platformId.Value));
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var games = await query
+            .OrderBy(g => g.Name)
+            .Skip(size * (page - 1))
+            .Take(size)
+            .ToListAsync();
+
+        return (games, totalCount);
+    }
+
     public async Task<IEnumerable<Game>> GetByGenreIdAsync(Guid genreId)
     {
         return await DbSet
