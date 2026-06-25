@@ -8,16 +8,19 @@ using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
+using Microsoft.Extensions.Logging;
 
 namespace Gamestore.BLL.Services.Concrete;
 
-public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
+public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameService> logger)
     : BaseService<GameDto, Game>(unitOfWork, mapper), IGameService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
     };
+
+    private readonly ILogger<GameService> _logger = logger;
 
     protected override IRepository<Game> Repository => UnitOfWork.Games;
 
@@ -96,6 +99,8 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
 
     public async Task<GameDto> CreateAsync(CreateGameDto dto)
     {
+        _logger.LogInformation("Creating game: {Name}", dto.Game.Name);
+
         var key = string.IsNullOrWhiteSpace(dto.Game.Key)
             ? GenerateKey(dto.Game.Name)
             : dto.Game.Key;
@@ -129,11 +134,15 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         await UnitOfWork.Games.AddAsync(game);
         await UnitOfWork.SaveChangesAsync();
 
+        _logger.LogInformation("Game created: {Name} (Key: {Key})", game.Name, game.Key);
+
         return Mapper.Map<GameDto>(game);
     }
 
     public async Task<GameDto> UpdateAsync(UpdateGameDto dto)
     {
+        _logger.LogInformation("Updating game: {Id}", dto.Game.Id);
+
         var game = await UnitOfWork.Games.GetByIdWithDetailsAsync(dto.Game.Id)
             ?? throw new NotFoundException(nameof(Game), dto.Game.Id);
 
@@ -164,16 +173,22 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         UnitOfWork.Games.Update(game);
         await UnitOfWork.SaveChangesAsync();
 
+        _logger.LogInformation("Game updated: {Name} (Key: {Key})", game.Name, game.Key);
+
         return Mapper.Map<GameDto>(game);
     }
 
     public async Task DeleteByKeyAsync(string key)
     {
+        _logger.LogInformation("Deleting game: {Key}", key);
+
         var game = await UnitOfWork.Games.GetByKeyAsync(key)
             ?? throw new NotFoundException(nameof(Game), key);
 
         UnitOfWork.Games.Delete(game);
         await UnitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Game deleted: {Key}", key);
     }
 
     public async Task<(byte[] FileBytes, string FileName)> GenerateGameFileAsync(string key)

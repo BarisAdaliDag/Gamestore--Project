@@ -5,12 +5,15 @@ using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
+using Microsoft.Extensions.Logging;
 
 namespace Gamestore.BLL.Services.Concrete;
 
-public class GenreService(IUnitOfWork unitOfWork, IMapper mapper)
+public class GenreService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GenreService> logger)
     : BaseService<GenreDto, Genre>(unitOfWork, mapper), IGenreService
 {
+    private readonly ILogger<GenreService> _logger = logger;
+
     protected override IRepository<Genre> Repository => UnitOfWork.Genres;
 
     public async Task<IEnumerable<GenreDto>> GetByParentIdAsync(Guid parentId)
@@ -27,6 +30,8 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper)
 
     public async Task<GenreDto> CreateAsync(CreateGenreDto dto)
     {
+        _logger.LogInformation("Creating genre: {Name}", dto.Genre.Name);
+
         var existing = await UnitOfWork.Genres.GetSingleAsync(g => g.Name == dto.Genre.Name);
         if (existing != null)
         {
@@ -45,11 +50,15 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper)
         await UnitOfWork.Genres.AddAsync(genre);
         await UnitOfWork.SaveChangesAsync();
 
+        _logger.LogInformation("Genre created: {Name} ({Id})", genre.Name, genre.Id);
+
         return Mapper.Map<GenreDto>(genre);
     }
 
     public async Task<GenreDto> UpdateAsync(UpdateGenreDto dto)
     {
+        _logger.LogInformation("Updating genre: {Id}", dto.Genre.Id);
+
         var genre = await UnitOfWork.Genres.GetByIdAsync(dto.Genre.Id)
             ?? throw new NotFoundException(nameof(Genre), dto.Genre.Id);
 
@@ -72,6 +81,8 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper)
 
         UnitOfWork.Genres.Update(genre);
         await UnitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Genre updated: {Name} ({Id})", genre.Name, genre.Id);
 
         return Mapper.Map<GenreDto>(genre);
     }
