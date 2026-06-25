@@ -17,14 +17,39 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
         }
         catch (Exception ex)
         {
+            LogExceptionDetails(ex);
             await HandleExceptionAsync(context, ex);
         }
     }
 
-    private async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private void LogExceptionDetails(Exception exception)
     {
-        _logger.LogError(exception, "An unhandled exception occurred.");
+        _logger.LogError(
+            exception,
+            "Exception Type: {ExceptionType} | Message: {Message} | InnerException: {InnerException}",
+            exception.GetType().FullName,
+            exception.Message,
+            GetInnerExceptions(exception));
+    }
 
+    private static string GetInnerExceptions(Exception exception)
+    {
+        var innerMessages = new List<string>();
+        var inner = exception.InnerException;
+
+        while (inner != null)
+        {
+            innerMessages.Add($"[{inner.GetType().Name}] {inner.Message}");
+            inner = inner.InnerException;
+        }
+
+        return innerMessages.Count > 0
+            ? string.Join(" -> ", innerMessages)
+            : "None";
+    }
+
+    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
         var (statusCode, message) = exception switch
         {
             NotFoundException => (HttpStatusCode.NotFound, exception.Message),
