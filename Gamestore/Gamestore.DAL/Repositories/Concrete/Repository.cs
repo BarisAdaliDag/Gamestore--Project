@@ -17,6 +17,11 @@ public class Repository<T>(GamestoreDbContext context) : IRepository<T>
         return await DbSet.ToListAsync();
     }
 
+    public async Task<int> CountAsync()
+    {
+        return await DbSet.CountAsync();
+    }
+
     public async Task<T?> GetByIdAsync(Guid id)
     {
         return await DbSet.FindAsync(id);

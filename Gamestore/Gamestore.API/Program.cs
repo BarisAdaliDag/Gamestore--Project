@@ -13,6 +13,7 @@ public static class Program
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Services.AddControllers();
+        builder.Services.AddMemoryCache();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddResponseCaching();
@@ -22,7 +23,8 @@ public static class Program
             options.AddDefaultPolicy(policy =>
                 policy.AllowAnyOrigin()
                     .AllowAnyHeader()
-                    .AllowAnyMethod());
+                    .AllowAnyMethod()
+                    .WithExposedHeaders("x-total-numbers-of-games"));
         });
 
         builder.Services.AddDataAccessLayer(builder.Configuration);
@@ -34,6 +36,7 @@ public static class Program
         var app = builder.Build();
 
         app.UseMiddleware<GlobalExceptionMiddleware>();
+        app.UseMiddleware<TotalGamesCountMiddleware>();
 
         if (app.Environment.IsDevelopment())
         {
