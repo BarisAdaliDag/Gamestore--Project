@@ -1,3 +1,4 @@
+using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Games;
 
 namespace Gamestore.BLL.Services.Abstract;
@@ -8,7 +9,11 @@ public interface IGameService : IService<GameDto>
 
     Task<IEnumerable<GameDto>> GetByGenreIdAsync(Guid genreId);
 
+    Task<PagedResultDto<GameDto>> GetByGenreIdAsync(Guid genreId, PaginationParamsDto paginationParams);
+
     Task<IEnumerable<GameDto>> GetByPlatformIdAsync(Guid platformId);
+
+    Task<PagedResultDto<GameDto>> GetByPlatformIdAsync(Guid platformId, PaginationParamsDto paginationParams);
 
     Task<GameDto> CreateAsync(CreateGameDto dto);
 

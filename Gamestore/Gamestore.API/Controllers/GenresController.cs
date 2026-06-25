@@ -1,7 +1,10 @@
 using Gamestore.API.Filters;
+using Gamestore.API.Models.Requests;
 using Gamestore.API.Models.Requests.Genres;
+using Gamestore.API.Models.Responses.Common;
 using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Genres;
+using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Genres;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
@@ -21,11 +24,13 @@ public class GenresController(
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
-    [ResponseCache(Duration = 60)]
-    public async Task<ActionResult<IEnumerable<GenreResponse>>> GetAll()
+    [ResponseCache(Duration = 60, VaryByQueryKeys = ["Page", "Size"])]
+    public async Task<ActionResult<PagedResponse<GenreResponse>>> GetAll(
+        [FromQuery] QueryParameters queryParameters)
     {
-        var dtos = await _genreService.GetAllAsync();
-        var response = _mapper.Map<IEnumerable<GenreResponse>>(dtos);
+        var paginationParams = _mapper.Map<PaginationParamsDto>(queryParameters);
+        var pagedResult = await _genreService.GetPagedAsync(paginationParams);
+        var response = _mapper.Map<PagedResponse<GenreResponse>>(pagedResult);
 
         return Ok(response);
     }
@@ -51,11 +56,14 @@ public class GenresController(
     }
 
     [HttpGet("{id:guid}/games")]
-    [ResponseCache(Duration = 60)]
-    public async Task<ActionResult<IEnumerable<GameResponse>>> GetGamesByGenre(Guid id)
+    [ResponseCache(Duration = 60, VaryByQueryKeys = ["Page", "Size"])]
+    public async Task<ActionResult<PagedResponse<GameResponse>>> GetGamesByGenre(
+        Guid id,
+        [FromQuery] QueryParameters queryParameters)
     {
-        var dtos = await _gameService.GetByGenreIdAsync(id);
-        var response = _mapper.Map<IEnumerable<GameResponse>>(dtos);
+        var paginationParams = _mapper.Map<PaginationParamsDto>(queryParameters);
+        var pagedResult = await _gameService.GetByGenreIdAsync(id, paginationParams);
+        var response = _mapper.Map<PagedResponse<GameResponse>>(pagedResult);
 
         return Ok(response);
     }

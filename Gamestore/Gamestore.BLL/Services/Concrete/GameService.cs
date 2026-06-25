@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Abstract;
@@ -33,10 +34,46 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         return Mapper.Map<IEnumerable<GameDto>>(games);
     }
 
+    public async Task<PagedResultDto<GameDto>> GetByGenreIdAsync(
+        Guid genreId,
+        PaginationParamsDto paginationParams)
+    {
+        var (items, totalCount) = await UnitOfWork.Games.GetPagedAsync(
+            paginationParams.Page,
+            paginationParams.Size,
+            game => game.GameGenres.Any(gameGenre => gameGenre.GenreId == genreId));
+
+        return new PagedResultDto<GameDto>
+        {
+            Items = Mapper.Map<IEnumerable<GameDto>>(items),
+            CurrentPage = paginationParams.Page,
+            PageSize = paginationParams.Size,
+            TotalCount = totalCount,
+        };
+    }
+
     public async Task<IEnumerable<GameDto>> GetByPlatformIdAsync(Guid platformId)
     {
         var games = await UnitOfWork.Games.GetByPlatformIdAsync(platformId);
         return Mapper.Map<IEnumerable<GameDto>>(games);
+    }
+
+    public async Task<PagedResultDto<GameDto>> GetByPlatformIdAsync(
+        Guid platformId,
+        PaginationParamsDto paginationParams)
+    {
+        var (items, totalCount) = await UnitOfWork.Games.GetPagedAsync(
+            paginationParams.Page,
+            paginationParams.Size,
+            game => game.GamePlatforms.Any(gamePlatform => gamePlatform.PlatformId == platformId));
+
+        return new PagedResultDto<GameDto>
+        {
+            Items = Mapper.Map<IEnumerable<GameDto>>(items),
+            CurrentPage = paginationParams.Page,
+            PageSize = paginationParams.Size,
+            TotalCount = totalCount,
+        };
     }
 
     public async Task<GameDto> CreateAsync(CreateGameDto dto)

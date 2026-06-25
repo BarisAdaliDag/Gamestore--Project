@@ -7,6 +7,12 @@ public interface IRepository<T>
 {
     Task<IEnumerable<T>> GetAllAsync();
 
+    Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
+        int page,
+        int size,
+        Expression<Func<T, bool>>? predicate = null,
+        Expression<Func<T, object>>? orderBy = null);
+
     Task<T?> GetByIdAsync(Guid id);
 
     Task<T?> GetSingleAsync(Expression<Func<T, bool>> predicate);

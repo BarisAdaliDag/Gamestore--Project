@@ -1,8 +1,11 @@
 using Gamestore.API.Filters;
+using Gamestore.API.Models.Requests;
 using Gamestore.API.Models.Requests.Games;
+using Gamestore.API.Models.Responses.Common;
 using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Genres;
 using Gamestore.API.Models.Responses.Platforms;
+using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
@@ -24,11 +27,13 @@ public class GamesController(
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
-    [ResponseCache(Duration = 60)]
-    public async Task<ActionResult<IEnumerable<GameResponse>>> GetAll()
+    [ResponseCache(Duration = 60, VaryByQueryKeys = ["Page", "Size"])]
+    public async Task<ActionResult<PagedResponse<GameResponse>>> GetAll(
+        [FromQuery] QueryParameters queryParameters)
     {
-        var dtos = await _gameService.GetAllAsync();
-        var response = _mapper.Map<IEnumerable<GameResponse>>(dtos);
+        var paginationParams = _mapper.Map<PaginationParamsDto>(queryParameters);
+        var pagedResult = await _gameService.GetPagedAsync(paginationParams);
+        var response = _mapper.Map<PagedResponse<GameResponse>>(pagedResult);
 
         return Ok(response);
     }
