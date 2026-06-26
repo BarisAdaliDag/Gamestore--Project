@@ -75,10 +75,12 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
     {
         const int MaxLength = 500;
 
+        var truncatedBody = body.Length <= MaxLength
+            ? body
+            : body[..MaxLength] + "...[truncated]";
+
         return string.IsNullOrEmpty(body)
             ? "[empty]"
-            : body.Length <= MaxLength
-                ? body
-            : body[..MaxLength] + "...[truncated]";
+            : truncatedBody;
     }
 }
