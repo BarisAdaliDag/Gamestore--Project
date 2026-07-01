@@ -5,6 +5,8 @@ namespace Gamestore.BLL.Services.Abstract;
 
 public interface IGameService : IService<GameDto>
 {
+    Task<int> GetTotalCountAsync();
+
     Task<GameDto> GetByKeyAsync(string key);
 
     Task<PagedResultDto<GameDto>> GetFilteredAsync(GameFilterDto filter);

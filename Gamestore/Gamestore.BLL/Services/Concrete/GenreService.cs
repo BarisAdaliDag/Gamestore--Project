@@ -6,6 +6,7 @@ using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Gamestore.BLL.Services.Concrete;
 
@@ -13,6 +14,11 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GenreS
     : BaseService<GenreDto, Genre>(unitOfWork, mapper), IGenreService
 {
     private readonly ILogger<GenreService> _logger = logger;
+
+    public GenreService(IUnitOfWork unitOfWork, IMapper mapper)
+        : this(unitOfWork, mapper, NullLogger<GenreService>.Instance)
+    {
+    }
 
     protected override IRepository<Genre> Repository => UnitOfWork.Genres;
 

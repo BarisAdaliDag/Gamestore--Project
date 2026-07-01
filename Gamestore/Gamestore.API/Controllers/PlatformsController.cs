@@ -16,9 +16,11 @@ namespace Gamestore.API.Controllers;
 [Route("[controller]")]
 public class PlatformsController(
     IPlatformService platformService,
+    IGameService gameService,
     IMapper mapper) : ControllerBase
 {
     private readonly IPlatformService _platformService = platformService;
+    private readonly IGameService _gameService = gameService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]

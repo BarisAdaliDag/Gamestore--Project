@@ -6,6 +6,7 @@ using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Gamestore.BLL.Services.Concrete;
 
@@ -13,6 +14,11 @@ public class PlatformService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<Pla
     : BaseService<PlatformDto, Platform>(unitOfWork, mapper), IPlatformService
 {
     private readonly ILogger<PlatformService> _logger = logger;
+
+    public PlatformService(IUnitOfWork unitOfWork, IMapper mapper)
+        : this(unitOfWork, mapper, NullLogger<PlatformService>.Instance)
+    {
+    }
 
     protected override IRepository<Platform> Repository => UnitOfWork.Platforms;
 

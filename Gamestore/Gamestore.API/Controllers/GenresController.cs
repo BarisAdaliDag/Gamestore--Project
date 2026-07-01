@@ -16,9 +16,11 @@ namespace Gamestore.API.Controllers;
 [Route("[controller]")]
 public class GenresController(
     IGenreService genreService,
+    IGameService gameService,
     IMapper mapper) : ControllerBase
 {
     private readonly IGenreService _genreService = genreService;
+    private readonly IGameService _gameService = gameService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]

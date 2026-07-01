@@ -9,6 +9,7 @@ using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Gamestore.BLL.Services.Concrete;
 
@@ -22,7 +23,17 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
 
     private readonly ILogger<GameService> _logger = logger;
 
+    public GameService(IUnitOfWork unitOfWork, IMapper mapper)
+        : this(unitOfWork, mapper, NullLogger<GameService>.Instance)
+    {
+    }
+
     protected override IRepository<Game> Repository => UnitOfWork.Games;
+
+    public async Task<int> GetTotalCountAsync()
+    {
+        return await UnitOfWork.Games.CountAsync();
+    }
 
     public async Task<GameDto> GetByKeyAsync(string key)
     {

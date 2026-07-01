@@ -7,6 +7,8 @@ public interface IRepository<T>
 {
     Task<IEnumerable<T>> GetAllAsync();
 
+    Task<int> CountAsync();
+
     Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
         int page,
         int size,
