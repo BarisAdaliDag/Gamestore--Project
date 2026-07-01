@@ -140,6 +140,9 @@ _TeamCity*
 *.coverage
 *.coveragexml
 
+# Generated test coverage reports
+/coveragereport/
+
 # NCrunch
 _NCrunch_*
 .*crunch*.local.xml
