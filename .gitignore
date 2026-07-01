@@ -26,6 +26,7 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+[Ll]ogs/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -138,6 +139,9 @@ _TeamCity*
 # Visual Studio code coverage results
 *.coverage
 *.coveragexml
+
+# Generated test coverage reports
+/coveragereport/
 
 # NCrunch
 _NCrunch_*
@@ -321,7 +325,6 @@ __pycache__/
 
 # OpenCover UI analysis results
 OpenCover/
-coveragereport/
 
 # Azure Stream Analytics local run output
 ASALocalRun/

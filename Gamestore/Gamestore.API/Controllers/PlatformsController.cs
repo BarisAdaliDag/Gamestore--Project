@@ -1,6 +1,10 @@
 using Gamestore.API.Filters;
+using Gamestore.API.Models.Requests;
 using Gamestore.API.Models.Requests.Platforms;
+using Gamestore.API.Models.Responses.Common;
+using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Platforms;
+using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Platforms;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
@@ -12,17 +16,21 @@ namespace Gamestore.API.Controllers;
 [Route("[controller]")]
 public class PlatformsController(
     IPlatformService platformService,
+    IGameService gameService,
     IMapper mapper) : ControllerBase
 {
     private readonly IPlatformService _platformService = platformService;
+    private readonly IGameService _gameService = gameService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
-    [ResponseCache(Duration = 60)]
-    public async Task<ActionResult<IEnumerable<PlatformResponse>>> GetAll()
+    [ResponseCache(Duration = 60, VaryByQueryKeys = ["Page", "Size"])]
+    public async Task<ActionResult<PagedResponse<PlatformResponse>>> GetAll(
+        [FromQuery] QueryParameters queryParameters)
     {
-        var dtos = await _platformService.GetAllAsync();
-        var response = _mapper.Map<IEnumerable<PlatformResponse>>(dtos);
+        var paginationParams = _mapper.Map<PaginationParamsDto>(queryParameters);
+        var pagedResult = await _platformService.GetPagedAsync(paginationParams);
+        var response = _mapper.Map<PagedResponse<PlatformResponse>>(pagedResult);
 
         return Ok(response);
     }
@@ -37,12 +45,15 @@ public class PlatformsController(
         return Ok(response);
     }
 
-    [HttpGet("~/games/{key}/platforms")]
-    [ResponseCache(Duration = 60)]
-    public async Task<ActionResult<IEnumerable<PlatformResponse>>> GetByGameKey(string key)
+    [HttpGet("{id:guid}/games")]
+    [ResponseCache(Duration = 60, VaryByQueryKeys = ["Page", "Size"])]
+    public async Task<ActionResult<PagedResponse<GameResponse>>> GetGamesByPlatform(
+        Guid id,
+        [FromQuery] QueryParameters queryParameters)
     {
-        var dtos = await _platformService.GetByGameKeyAsync(key);
-        var response = _mapper.Map<IEnumerable<PlatformResponse>>(dtos);
+        var paginationParams = _mapper.Map<PaginationParamsDto>(queryParameters);
+        var pagedResult = await _gameService.GetByPlatformIdAsync(id, paginationParams);
+        var response = _mapper.Map<PagedResponse<GameResponse>>(pagedResult);
 
         return Ok(response);
     }
