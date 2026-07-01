@@ -17,9 +17,32 @@ public class Repository<T>(GamestoreDbContext context) : IRepository<T>
         return await DbSet.ToListAsync();
     }
 
-    public async Task<int> CountAsync()
+    public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
+        int page,
+        int size,
+        Expression<Func<T, bool>>? predicate = null,
+        Expression<Func<T, object>>? orderBy = null)
     {
-        return await DbSet.CountAsync();
+        var query = DbSet.AsNoTracking();
+
+        if (predicate != null)
+        {
+            query = query.Where(predicate);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        if (orderBy != null)
+        {
+            query = query.OrderBy(orderBy);
+        }
+
+        var items = await query
+            .Skip(size * (page - 1))
+            .Take(size)
+            .ToListAsync();
+
+        return (items, totalCount);
     }
 
     public async Task<T?> GetByIdAsync(Guid id)

@@ -1,5 +1,6 @@
 using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Games;
+using Gamestore.API.Models.Responses.Common;
 using Gamestore.API.Models.Responses.Games;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Services.Abstract;
@@ -18,11 +19,13 @@ public class GamesController(
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
-    [ResponseCache(Duration = 60)]
-    public async Task<ActionResult<IEnumerable<GameResponse>>> GetAll()
+    [ResponseCache(Duration = 60, VaryByQueryKeys = ["Page", "Size", "Name", "GenreId", "PlatformId"])]
+    public async Task<ActionResult<PagedResponse<GameResponse>>> GetAll(
+        [FromQuery] GameQueryParameters queryParameters)
     {
-        var dtos = await _gameService.GetAllAsync();
-        var response = _mapper.Map<IEnumerable<GameResponse>>(dtos);
+        var filter = _mapper.Map<GameFilterDto>(queryParameters);
+        var pagedResult = await _gameService.GetFilteredAsync(filter);
+        var response = _mapper.Map<PagedResponse<GameResponse>>(pagedResult);
 
         return Ok(response);
     }

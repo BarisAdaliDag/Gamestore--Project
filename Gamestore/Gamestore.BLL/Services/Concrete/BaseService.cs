@@ -1,4 +1,5 @@
 using Gamestore.BLL.DTOs.Abstract;
+using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Abstract;
 using Gamestore.DAL.Repositories.Abstract;
@@ -22,6 +23,21 @@ public abstract class BaseService<TDto, TEntity>(IUnitOfWork unitOfWork, IMapper
     {
         var entities = await Repository.GetAllAsync();
         return Mapper.Map<IEnumerable<TDto>>(entities);
+    }
+
+    public virtual async Task<PagedResultDto<TDto>> GetPagedAsync(PaginationParamsDto paginationParams)
+    {
+        var (items, totalCount) = await Repository.GetPagedAsync(
+            paginationParams.Page,
+            paginationParams.Size);
+
+        return new PagedResultDto<TDto>
+        {
+            Items = Mapper.Map<IEnumerable<TDto>>(items),
+            CurrentPage = paginationParams.Page,
+            PageSize = paginationParams.Size,
+            TotalCount = totalCount,
+        };
     }
 
     public virtual async Task<TDto> GetByIdAsync(Guid id)

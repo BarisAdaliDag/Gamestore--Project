@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Abstract;
@@ -7,16 +8,19 @@ using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
+using Microsoft.Extensions.Logging;
 
 namespace Gamestore.BLL.Services.Concrete;
 
-public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
+public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameService> logger)
     : BaseService<GameDto, Game>(unitOfWork, mapper), IGameService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
     };
+
+    private readonly ILogger<GameService> _logger = logger;
 
     protected override IRepository<Game> Repository => UnitOfWork.Games;
 
@@ -27,10 +31,46 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         return Mapper.Map<GameDto>(game);
     }
 
+    public async Task<PagedResultDto<GameDto>> GetFilteredAsync(GameFilterDto filter)
+    {
+        var (games, totalCount) = await UnitOfWork.Games.GetFilteredPagedAsync(
+            filter.Page,
+            filter.Size,
+            filter.Name,
+            filter.GenreId,
+            filter.PlatformId);
+
+        return new PagedResultDto<GameDto>
+        {
+            Items = Mapper.Map<IEnumerable<GameDto>>(games),
+            CurrentPage = filter.Page,
+            PageSize = filter.Size,
+            TotalCount = totalCount,
+        };
+    }
+
     public async Task<IEnumerable<GameDto>> GetByGenreIdAsync(Guid genreId)
     {
         var games = await UnitOfWork.Games.GetByGenreIdAsync(genreId);
         return Mapper.Map<IEnumerable<GameDto>>(games);
+    }
+
+    public async Task<PagedResultDto<GameDto>> GetByGenreIdAsync(
+        Guid genreId,
+        PaginationParamsDto paginationParams)
+    {
+        var (items, totalCount) = await UnitOfWork.Games.GetPagedAsync(
+            paginationParams.Page,
+            paginationParams.Size,
+            game => game.GameGenres.Any(gameGenre => gameGenre.GenreId == genreId));
+
+        return new PagedResultDto<GameDto>
+        {
+            Items = Mapper.Map<IEnumerable<GameDto>>(items),
+            CurrentPage = paginationParams.Page,
+            PageSize = paginationParams.Size,
+            TotalCount = totalCount,
+        };
     }
 
     public async Task<IEnumerable<GameDto>> GetByPlatformIdAsync(Guid platformId)
@@ -39,13 +79,28 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         return Mapper.Map<IEnumerable<GameDto>>(games);
     }
 
-    public async Task<int> GetTotalCountAsync()
+    public async Task<PagedResultDto<GameDto>> GetByPlatformIdAsync(
+        Guid platformId,
+        PaginationParamsDto paginationParams)
     {
-        return await UnitOfWork.Games.CountAsync();
+        var (items, totalCount) = await UnitOfWork.Games.GetPagedAsync(
+            paginationParams.Page,
+            paginationParams.Size,
+            game => game.GamePlatforms.Any(gamePlatform => gamePlatform.PlatformId == platformId));
+
+        return new PagedResultDto<GameDto>
+        {
+            Items = Mapper.Map<IEnumerable<GameDto>>(items),
+            CurrentPage = paginationParams.Page,
+            PageSize = paginationParams.Size,
+            TotalCount = totalCount,
+        };
     }
 
     public async Task<GameDto> CreateAsync(CreateGameDto dto)
     {
+        _logger.LogInformation("Creating game: {Name}", dto.Game.Name);
+
         var key = string.IsNullOrWhiteSpace(dto.Game.Key)
             ? GenerateKey(dto.Game.Name)
             : dto.Game.Key;
@@ -79,11 +134,15 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         await UnitOfWork.Games.AddAsync(game);
         await UnitOfWork.SaveChangesAsync();
 
+        _logger.LogInformation("Game created: {Name} (Key: {Key})", game.Name, game.Key);
+
         return Mapper.Map<GameDto>(game);
     }
 
     public async Task<GameDto> UpdateAsync(UpdateGameDto dto)
     {
+        _logger.LogInformation("Updating game: {Id}", dto.Game.Id);
+
         var game = await UnitOfWork.Games.GetByIdWithDetailsAsync(dto.Game.Id)
             ?? throw new NotFoundException(nameof(Game), dto.Game.Id);
 
@@ -114,16 +173,22 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper)
         UnitOfWork.Games.Update(game);
         await UnitOfWork.SaveChangesAsync();
 
+        _logger.LogInformation("Game updated: {Name} (Key: {Key})", game.Name, game.Key);
+
         return Mapper.Map<GameDto>(game);
     }
 
     public async Task DeleteByKeyAsync(string key)
     {
+        _logger.LogInformation("Deleting game: {Key}", key);
+
         var game = await UnitOfWork.Games.GetByKeyAsync(key)
             ?? throw new NotFoundException(nameof(Game), key);
 
         UnitOfWork.Games.Delete(game);
         await UnitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Game deleted: {Key}", key);
     }
 
     public async Task<(byte[] FileBytes, string FileName)> GenerateGameFileAsync(string key)
