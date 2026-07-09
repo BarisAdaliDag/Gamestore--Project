@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "kGFe8jdeCZ0=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\baris\\OneDrive\\Belgeler\\github\\epam\\gameProject\\game-store-v2-with-branches\\Gamestore\\Gamestore.Domain\\Gamestore.Domain.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\baris\\.nuget\\packages\\stylecop.analyzers.unstable\\1.2.0.556\\stylecop.analyzers.unstable.1.2.0.556.nupkg.sha512"
+  ],
+  "logs": []
+}

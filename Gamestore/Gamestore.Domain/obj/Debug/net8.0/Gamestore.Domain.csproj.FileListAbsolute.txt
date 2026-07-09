@@ -1,0 +1,13 @@
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\bin\Debug\net8.0\Gamestore.Domain.deps.json
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\bin\Debug\net8.0\Gamestore.Domain.dll
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\bin\Debug\net8.0\Gamestore.Domain.pdb
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\bin\Debug\net8.0\Gamestore.Domain.xml
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\obj\Debug\net8.0\Gamestore.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\obj\Debug\net8.0\Gamestore.Domain.AssemblyInfoInputs.cache
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\obj\Debug\net8.0\Gamestore.Domain.AssemblyInfo.cs
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\obj\Debug\net8.0\Gamestore.Domain.csproj.CoreCompileInputs.cache
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\obj\Debug\net8.0\Gamestore.Domain.dll
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\obj\Debug\net8.0\refint\Gamestore.Domain.dll
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\obj\Debug\net8.0\Gamestore.Domain.xml
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\obj\Debug\net8.0\Gamestore.Domain.pdb
+C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.Domain\obj\Debug\net8.0\ref\Gamestore.Domain.dll
