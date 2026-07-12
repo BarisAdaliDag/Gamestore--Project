@@ -4368,7 +4368,7 @@ class BaseService {
         }));
     }
     interceptRequest(request) {
-        return this.loaderService.openForLoading(request.pipe((0,rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.tap)((x) => _configuration_shared_info__WEBPACK_IMPORTED_MODULE_1__.gameCountSubject.next(x.headers.get('x-total-numbers-of-games'))), (0,rxjs_operators__WEBPACK_IMPORTED_MODULE_3__.map)((x) => { var _a; return (_a = x.body) !== null && _a !== void 0 ? _a : {}; })));
+        return this.loaderService.openForLoading(request.pipe((0,rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.tap)((x) => _configuration_shared_info__WEBPACK_IMPORTED_MODULE_1__.gameCountSubject.next(x.headers.get('x-total-numbers-of-games'))), (0,rxjs_operators__WEBPACK_IMPORTED_MODULE_3__.map)((x) => { var _a; const body = (_a = x.body) !== null && _a !== void 0 ? _a : {}; return body && Array.isArray(body.items) ? body.items : body; })));
     }
 }
 
