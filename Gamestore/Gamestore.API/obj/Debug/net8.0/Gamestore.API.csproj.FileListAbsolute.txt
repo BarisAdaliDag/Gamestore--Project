@@ -180,4 +180,3 @@ C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-bran
 C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.API\obj\Debug\net8.0\Gamestore.API.pdb
 C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.API\obj\Debug\net8.0\Gamestore.API.genruntimeconfig.cache
 C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.API\obj\Debug\net8.0\ref\Gamestore.API.dll
-C:\Users\baris\OneDrive\Belgeler\github\epam\gameProject\game-store-v2-with-branches\Gamestore\Gamestore.API\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

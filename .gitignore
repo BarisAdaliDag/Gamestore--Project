@@ -1,1 +1,8 @@
 [Ll]ogs/
+.vs/
+**/[Bb]in/
+**/[Oo]bj/
+TestResults/
+*.user
+*.suo
+*.rsuser
