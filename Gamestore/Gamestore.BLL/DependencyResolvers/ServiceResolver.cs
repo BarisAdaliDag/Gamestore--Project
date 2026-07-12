@@ -11,6 +11,7 @@ public static class ServiceResolver
         services.AddScoped<IGameService, GameService>();
         services.AddScoped<IGenreService, GenreService>();
         services.AddScoped<IPlatformService, PlatformService>();
+        services.AddScoped<IPublisherService, PublisherService>();
 
         return services;
     }

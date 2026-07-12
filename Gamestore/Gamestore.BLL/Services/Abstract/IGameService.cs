@@ -19,6 +19,8 @@ public interface IGameService : IService<GameDto>
 
     Task<PagedResultDto<GameDto>> GetByPlatformIdAsync(Guid platformId, PaginationParamsDto paginationParams);
 
+    Task<IEnumerable<GameDto>> GetByPublisherNameAsync(string companyName);
+
     Task<GameDto> CreateAsync(CreateGameDto dto);
 
     Task<GameDto> UpdateAsync(UpdateGameDto dto);

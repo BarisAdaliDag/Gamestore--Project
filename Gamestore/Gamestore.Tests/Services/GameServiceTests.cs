@@ -82,11 +82,20 @@ public class GameServiceTests
     {
         var genreId = Guid.NewGuid();
         var platformId = Guid.NewGuid();
+        var publisherId = Guid.NewGuid();
         var dto = new CreateGameDto
         {
-            Game = new GameCreateInfoDto { Name = "New Game", Key = "new-game" },
+            Game = new GameCreateInfoDto
+            {
+                Name = "New Game",
+                Key = "new-game",
+                Price = 10,
+                UnitInStock = 5,
+                Discount = 0,
+            },
             Genres = [genreId],
             Platforms = [platformId],
+            Publisher = publisherId,
         };
 
         var mockGameRepository = new Mock<IGameRepository>();
@@ -101,6 +110,10 @@ public class GameServiceTests
         mockPlatformRepository.Setup(repository => repository.GetByIdAsync(platformId))
             .ReturnsAsync(new Platform { Id = platformId, Type = "PC" });
 
+        var mockPublisherRepository = new Mock<IPublisherRepository>();
+        mockPublisherRepository.Setup(repository => repository.GetByIdAsync(publisherId))
+            .ReturnsAsync(new Publisher { Id = publisherId, CompanyName = "Valve" });
+
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
             .Returns(mockGameRepository.Object);
@@ -108,6 +121,8 @@ public class GameServiceTests
             .Returns(mockGenreRepository.Object);
         mockUnitOfWork.Setup(unitOfWork => unitOfWork.Platforms)
             .Returns(mockPlatformRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Publishers)
+            .Returns(mockPublisherRepository.Object);
         mockUnitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync())
             .ReturnsAsync(1);
 
