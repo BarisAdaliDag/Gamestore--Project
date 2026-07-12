@@ -20,4 +20,6 @@ public interface IGameRepository : IRepository<Game>
     Task<IEnumerable<Game>> GetByGenreIdAsync(Guid genreId);
 
     Task<IEnumerable<Game>> GetByPlatformIdAsync(Guid platformId);
+
+    Task<IEnumerable<Game>> GetByPublisherNameAsync(string companyName);
 }

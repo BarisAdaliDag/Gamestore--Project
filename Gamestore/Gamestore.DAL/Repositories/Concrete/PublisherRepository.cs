@@ -11,4 +11,9 @@ public class PublisherRepository(GamestoreDbContext context) : Repository<Publis
     {
         return await DbSet.FirstOrDefaultAsync(p => p.CompanyName == companyName);
     }
+
+    public async Task<Publisher?> GetByGameKeyAsync(string gameKey)
+    {
+        return await DbSet.FirstOrDefaultAsync(p => p.Games.Any(g => g.Key == gameKey));
+    }
 }

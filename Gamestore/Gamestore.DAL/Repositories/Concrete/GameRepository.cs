@@ -76,4 +76,11 @@ public class GameRepository(GamestoreDbContext context) : Repository<Game>(conte
             .Where(g => g.GamePlatforms.Any(gp => gp.PlatformId == platformId))
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Game>> GetByPublisherNameAsync(string companyName)
+    {
+        return await DbSet
+            .Where(g => g.Publisher != null && g.Publisher.CompanyName == companyName)
+            .ToListAsync();
+    }
 }

@@ -7,8 +7,35 @@ public static class DbSeeder
 {
     public static void Seed(ModelBuilder modelBuilder)
     {
+        SeedPublishers(modelBuilder);
         SeedPlatforms(modelBuilder);
         SeedGenres(modelBuilder);
+    }
+
+    private static void SeedPublishers(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Publisher>().HasData(
+            new Publisher
+            {
+                Id = Guid.Parse("55555555-5555-5555-5555-555555555551"),
+                CompanyName = "Electronic Arts",
+                HomePage = "https://www.ea.com",
+                Description = "Electronic Arts Inc.",
+            },
+            new Publisher
+            {
+                Id = Guid.Parse("55555555-5555-5555-5555-555555555552"),
+                CompanyName = "Ubisoft",
+                HomePage = "https://www.ubisoft.com",
+                Description = "Ubisoft Entertainment SA",
+            },
+            new Publisher
+            {
+                Id = Guid.Parse("55555555-5555-5555-5555-555555555553"),
+                CompanyName = "Valve",
+                HomePage = "https://www.valvesoftware.com",
+                Description = "Valve Corporation",
+            });
     }
 
     private static void SeedPlatforms(ModelBuilder modelBuilder)
