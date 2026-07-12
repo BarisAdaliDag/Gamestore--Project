@@ -26,14 +26,30 @@ public class CreateGameRequestValidator : AbstractValidator<CreateGameRequest>
             RuleFor(request => request.Game.Description)
                 .MaximumLength(2000)
                 .WithMessage("Description cannot exceed 2000 characters.");
+
+            RuleFor(request => request.Game.Price)
+                .GreaterThanOrEqualTo(0)
+                .WithMessage("Price cannot be negative.");
+
+            RuleFor(request => request.Game.UnitInStock)
+                .GreaterThanOrEqualTo(0)
+                .WithMessage("Unit in stock cannot be negative.");
+
+            RuleFor(request => request.Game.Discount)
+                .InclusiveBetween(0, 100)
+                .WithMessage("Discount must be between 0 and 100.");
         });
 
         RuleFor(request => request.Genres)
-            .NotNull()
-            .WithMessage("Genres list is required.");
+            .NotEmpty()
+            .WithMessage("At least one genre is required.");
 
         RuleFor(request => request.Platforms)
-            .NotNull()
-            .WithMessage("Platforms list is required.");
+            .NotEmpty()
+            .WithMessage("At least one platform is required.");
+
+        RuleFor(request => request.Publisher)
+            .NotEmpty()
+            .WithMessage("Publisher id is required.");
     }
 }

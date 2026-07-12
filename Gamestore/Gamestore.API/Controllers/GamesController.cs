@@ -4,6 +4,7 @@ using Gamestore.API.Models.Responses.Common;
 using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Genres;
 using Gamestore.API.Models.Responses.Platforms;
+using Gamestore.API.Models.Responses.Publishers;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
@@ -17,15 +18,16 @@ public class GamesController(
     IGameService gameService,
     IGenreService genreService,
     IPlatformService platformService,
+    IPublisherService publisherService,
     IMapper mapper) : ControllerBase
 {
     private readonly IGameService _gameService = gameService;
     private readonly IGenreService _genreService = genreService;
     private readonly IPlatformService _platformService = platformService;
+    private readonly IPublisherService _publisherService = publisherService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
-    [ResponseCache(Duration = 60, VaryByQueryKeys = ["Page", "Size", "Name", "GenreId", "PlatformId"])]
     public async Task<ActionResult<PagedResponse<GameResponse>>> GetAll(
         [FromQuery] GameQueryParameters queryParameters)
     {
@@ -37,11 +39,20 @@ public class GamesController(
     }
 
     [HttpGet("{key}")]
-    [ResponseCache(Duration = 60)]
     public async Task<ActionResult<GameResponse>> GetByKey(string key)
     {
         var dto = await _gameService.GetByKeyAsync(key);
         var response = _mapper.Map<GameResponse>(dto);
+
+        return Ok(response);
+    }
+
+    [HttpGet("{key}/publisher")]
+    [ResponseCache(Duration = 60)]
+    public async Task<ActionResult<PublisherResponse>> GetPublisherByGameKey(string key)
+    {
+        var dto = await _publisherService.GetByGameKeyAsync(key);
+        var response = _mapper.Map<PublisherResponse>(dto);
 
         return Ok(response);
     }
