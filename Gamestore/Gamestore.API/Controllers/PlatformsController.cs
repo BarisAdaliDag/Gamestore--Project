@@ -24,7 +24,6 @@ public class PlatformsController(
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
-    [ResponseCache(Duration = 60, VaryByQueryKeys = ["Page", "Size"])]
     public async Task<ActionResult<PagedResponse<PlatformResponse>>> GetAll(
         [FromQuery] QueryParameters queryParameters)
     {
@@ -36,7 +35,6 @@ public class PlatformsController(
     }
 
     [HttpGet("{id:guid}")]
-    [ResponseCache(Duration = 60)]
     public async Task<ActionResult<PlatformResponse>> GetById(Guid id)
     {
         var dto = await _platformService.GetByIdAsync(id);
@@ -46,7 +44,6 @@ public class PlatformsController(
     }
 
     [HttpGet("{id:guid}/games")]
-    [ResponseCache(Duration = 60, VaryByQueryKeys = ["Page", "Size"])]
     public async Task<ActionResult<PagedResponse<GameResponse>>> GetGamesByPlatform(
         Guid id,
         [FromQuery] QueryParameters queryParameters)

@@ -21,7 +21,6 @@ public class PublishersController(
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
-    [ResponseCache(Duration = 60)]
     public async Task<ActionResult<IEnumerable<PublisherResponse>>> GetAll()
     {
         var dtos = await _publisherService.GetAllAsync();
@@ -31,7 +30,6 @@ public class PublishersController(
     }
 
     [HttpGet("{companyName}")]
-    [ResponseCache(Duration = 60)]
     public async Task<ActionResult<PublisherResponse>> GetByCompanyName(string companyName)
     {
         var dto = await _publisherService.GetByCompanyNameAsync(companyName);
@@ -41,7 +39,6 @@ public class PublishersController(
     }
 
     [HttpGet("{companyName}/games")]
-    [ResponseCache(Duration = 60)]
     public async Task<ActionResult<IEnumerable<GameResponse>>> GetGamesByPublisher(string companyName)
     {
         var dtos = await _gameService.GetByPublisherNameAsync(companyName);

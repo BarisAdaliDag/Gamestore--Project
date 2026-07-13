@@ -54,6 +54,7 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
         {
             NotFoundException => (HttpStatusCode.NotFound, exception.Message),
             EntityAlreadyExistsException => (HttpStatusCode.Conflict, exception.Message),
+            EntityInUseException => (HttpStatusCode.Conflict, exception.Message),
             ValidationException => (HttpStatusCode.BadRequest, exception.Message),
             _ => (HttpStatusCode.InternalServerError, "An internal server error occurred."),
         };

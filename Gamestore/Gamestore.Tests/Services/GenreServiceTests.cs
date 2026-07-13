@@ -216,6 +216,48 @@ public class GenreServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsyncShouldThrowValidationExceptionWhenParentCreatesIndirectCycle()
+    {
+        var genreId = Guid.NewGuid();
+        var parentGenreId = Guid.NewGuid();
+        var grandParentGenreId = Guid.NewGuid();
+        var dto = new UpdateGenreDto
+        {
+            Genre = new GenreUpdateInfoDto
+            {
+                Id = genreId,
+                Name = "Action",
+                ParentGenreId = parentGenreId,
+            },
+        };
+
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(genreId))
+            .ReturnsAsync(new Genre { Id = genreId, Name = "Action" });
+        _mockGenreRepository.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<Genre, bool>>>()))
+            .ReturnsAsync((Genre?)null);
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(parentGenreId))
+            .ReturnsAsync(new Genre
+            {
+                Id = parentGenreId,
+                Name = "Adventure",
+                ParentGenreId = grandParentGenreId,
+            });
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(grandParentGenreId))
+            .ReturnsAsync(new Genre
+            {
+                Id = grandParentGenreId,
+                Name = "RPG",
+                ParentGenreId = genreId,
+            });
+
+        await Assert.ThrowsAsync<ValidationException>(() => _service.UpdateAsync(dto));
+
+        _mockGenreRepository.Verify(repository => repository.Update(It.IsAny<Genre>()), Times.Never);
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
     public async Task UpdateAsyncShouldThrowValidationExceptionWhenParentGenreDoesNotExist()
     {
         var id = Guid.NewGuid();

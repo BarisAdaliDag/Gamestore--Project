@@ -16,4 +16,11 @@ public class PublisherRepository(GamestoreDbContext context) : Repository<Publis
     {
         return await DbSet.FirstOrDefaultAsync(p => p.Games.Any(g => g.Key == gameKey));
     }
+
+    public async Task<bool> HasGamesAsync(Guid publisherId)
+    {
+        return await DbSet
+            .AsNoTracking()
+            .AnyAsync(p => p.Id == publisherId && p.Games.Any());
+    }
 }

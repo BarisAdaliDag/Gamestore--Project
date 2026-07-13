@@ -39,7 +39,6 @@ public static class Program
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-            builder.Services.AddResponseCaching();
 
             builder.Services.AddCors(options =>
             {
@@ -68,7 +67,6 @@ public static class Program
 
             app.UseHttpsRedirection();
             app.UseCors();
-            app.UseResponseCaching();
             app.UseAuthorization();
             app.MapControllers();
 

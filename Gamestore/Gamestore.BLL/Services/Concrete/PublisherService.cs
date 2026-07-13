@@ -22,6 +22,20 @@ public class PublisherService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<Pu
 
     protected override IRepository<Publisher> Repository => UnitOfWork.Publishers;
 
+    public override async Task DeleteAsync(Guid id)
+    {
+        var publisher = await UnitOfWork.Publishers.GetByIdAsync(id)
+            ?? throw new NotFoundException(nameof(Publisher), id);
+
+        if (await UnitOfWork.Publishers.HasGamesAsync(id))
+        {
+            throw new EntityInUseException(nameof(Publisher), id);
+        }
+
+        UnitOfWork.Publishers.Delete(publisher);
+        await UnitOfWork.SaveChangesAsync();
+    }
+
     public async Task<PublisherDto> GetByCompanyNameAsync(string companyName)
     {
         var publisher = await UnitOfWork.Publishers.GetByCompanyNameAsync(companyName)

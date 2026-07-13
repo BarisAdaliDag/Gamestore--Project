@@ -48,7 +48,6 @@ public class GamesController(
     }
 
     [HttpGet("{key}/publisher")]
-    [ResponseCache(Duration = 60)]
     public async Task<ActionResult<PublisherResponse>> GetPublisherByGameKey(string key)
     {
         var dto = await _publisherService.GetByGameKeyAsync(key);
@@ -58,7 +57,6 @@ public class GamesController(
     }
 
     [HttpGet("find/{id:guid}")]
-    [ResponseCache(Duration = 60)]
     public async Task<ActionResult<GameResponse>> GetById(Guid id)
     {
         var dto = await _gameService.GetByIdAsync(id);
@@ -68,7 +66,6 @@ public class GamesController(
     }
 
     [HttpGet("{key}/genres")]
-    [ResponseCache(Duration = 60)]
     public async Task<ActionResult<IEnumerable<GenreResponse>>> GetGenresByGameKey(string key)
     {
         var dtos = await _genreService.GetByGameKeyAsync(key);
@@ -78,7 +75,6 @@ public class GamesController(
     }
 
     [HttpGet("{key}/platforms")]
-    [ResponseCache(Duration = 60)]
     public async Task<ActionResult<IEnumerable<PlatformResponse>>> GetPlatformsByGameKey(string key)
     {
         var dtos = await _platformService.GetByGameKeyAsync(key);
