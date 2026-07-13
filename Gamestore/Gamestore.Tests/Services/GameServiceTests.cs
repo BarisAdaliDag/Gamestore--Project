@@ -78,6 +78,40 @@ public class GameServiceTests
     }
 
     [Fact]
+    public async Task GetByPublisherNameAsyncShouldReturnMappedGames()
+    {
+        const string CompanyName = "Valve";
+        var games = new List<Game>
+        {
+            new() { Id = Guid.NewGuid(), Name = "Half-Life", Key = "half-life" },
+            new() { Id = Guid.NewGuid(), Name = "Portal", Key = "portal" },
+        };
+        var gameDtos = games.Select(game => new GameDto
+        {
+            Id = game.Id,
+            Name = game.Name,
+            Key = game.Key,
+        });
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByPublisherNameAsync(CompanyName))
+            .ReturnsAsync(games);
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
+            .Returns(mockGameRepository.Object);
+        var mockMapper = new Mock<IMapper>();
+        mockMapper.Setup(mapper => mapper.Map<IEnumerable<GameDto>>(games))
+            .Returns(gameDtos);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        var result = await service.GetByPublisherNameAsync(CompanyName);
+
+        Assert.Equal(2, result.Count());
+        mockGameRepository.Verify(
+            repository => repository.GetByPublisherNameAsync(CompanyName),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task CreateAsyncShouldCreateGameAndCallSaveChanges()
     {
         var genreId = Guid.NewGuid();
@@ -101,6 +135,10 @@ public class GameServiceTests
         var mockGameRepository = new Mock<IGameRepository>();
         mockGameRepository.Setup(repository => repository.GetByKeyAsync("new-game"))
             .ReturnsAsync((Game?)null);
+        Game? addedGame = null;
+        mockGameRepository.Setup(repository => repository.AddAsync(It.IsAny<Game>()))
+            .Callback<Game>(game => addedGame = game)
+            .Returns(Task.CompletedTask);
 
         var mockGenreRepository = new Mock<IGenreRepository>();
         mockGenreRepository.Setup(repository => repository.GetByIdAsync(genreId))
@@ -135,8 +173,111 @@ public class GameServiceTests
         var result = await service.CreateAsync(dto);
 
         Assert.NotNull(result);
+        Assert.NotNull(addedGame);
         Assert.Equal("new-game", result.Key);
+        Assert.Equal(dto.Game.Price, addedGame.Price);
+        Assert.Equal(dto.Game.UnitInStock, addedGame.UnitInStock);
+        Assert.Equal(dto.Game.Discount, addedGame.Discount);
+        Assert.Equal(publisherId, addedGame.PublisherId);
         mockGameRepository.Verify(repository => repository.AddAsync(It.IsAny<Game>()), Times.Once);
+        mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsyncShouldThrowValidationExceptionWhenPublisherDoesNotExist()
+    {
+        var genreId = Guid.NewGuid();
+        var platformId = Guid.NewGuid();
+        var publisherId = Guid.NewGuid();
+        var dto = new CreateGameDto
+        {
+            Game = new GameCreateInfoDto { Name = "New Game", Key = "new-game" },
+            Genres = [genreId],
+            Platforms = [platformId],
+            Publisher = publisherId,
+        };
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByKeyAsync("new-game"))
+            .ReturnsAsync((Game?)null);
+        var mockGenreRepository = new Mock<IGenreRepository>();
+        mockGenreRepository.Setup(repository => repository.GetByIdAsync(genreId))
+            .ReturnsAsync(new Genre { Id = genreId, Name = "Action" });
+        var mockPlatformRepository = new Mock<IPlatformRepository>();
+        mockPlatformRepository.Setup(repository => repository.GetByIdAsync(platformId))
+            .ReturnsAsync(new Platform { Id = platformId, Type = "PC" });
+        var mockPublisherRepository = new Mock<IPublisherRepository>();
+        mockPublisherRepository.Setup(repository => repository.GetByIdAsync(publisherId))
+            .ReturnsAsync((Publisher?)null);
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games).Returns(mockGameRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Genres).Returns(mockGenreRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Platforms).Returns(mockPlatformRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Publishers).Returns(mockPublisherRepository.Object);
+        var service = new GameService(mockUnitOfWork.Object, Mock.Of<IMapper>());
+
+        await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(dto));
+
+        mockGameRepository.Verify(repository => repository.AddAsync(It.IsAny<Game>()), Times.Never);
+        mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldUpdateEpicFourFieldsAndPublisher()
+    {
+        var gameId = Guid.NewGuid();
+        var genreId = Guid.NewGuid();
+        var platformId = Guid.NewGuid();
+        var publisherId = Guid.NewGuid();
+        var game = new Game { Id = gameId, Name = "Old Name", Key = "old-key" };
+        var dto = new UpdateGameDto
+        {
+            Game = new GameUpdateInfoDto
+            {
+                Id = gameId,
+                Name = "Updated Game",
+                Key = "updated-game",
+                Price = 49.99,
+                UnitInStock = 25,
+                Discount = 10,
+            },
+            Genres = [genreId],
+            Platforms = [platformId],
+            Publisher = publisherId,
+        };
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByIdWithDetailsAsync(gameId))
+            .ReturnsAsync(game);
+        mockGameRepository.Setup(repository => repository.GetByKeyAsync("updated-game"))
+            .ReturnsAsync((Game?)null);
+        var mockGenreRepository = new Mock<IGenreRepository>();
+        mockGenreRepository.Setup(repository => repository.GetByIdAsync(genreId))
+            .ReturnsAsync(new Genre { Id = genreId, Name = "Action" });
+        var mockPlatformRepository = new Mock<IPlatformRepository>();
+        mockPlatformRepository.Setup(repository => repository.GetByIdAsync(platformId))
+            .ReturnsAsync(new Platform { Id = platformId, Type = "PC" });
+        var mockPublisherRepository = new Mock<IPublisherRepository>();
+        mockPublisherRepository.Setup(repository => repository.GetByIdAsync(publisherId))
+            .ReturnsAsync(new Publisher { Id = publisherId, CompanyName = "Valve" });
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games).Returns(mockGameRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Genres).Returns(mockGenreRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Platforms).Returns(mockPlatformRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Publishers).Returns(mockPublisherRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync()).ReturnsAsync(1);
+        var mockMapper = new Mock<IMapper>();
+        mockMapper.Setup(mapper => mapper.Map<GameDto>(game))
+            .Returns(new GameDto { Id = gameId, Name = dto.Game.Name, Key = dto.Game.Key });
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        await service.UpdateAsync(dto);
+
+        Assert.Equal(dto.Game.Price, game.Price);
+        Assert.Equal(dto.Game.UnitInStock, game.UnitInStock);
+        Assert.Equal(dto.Game.Discount, game.Discount);
+        Assert.Equal(publisherId, game.PublisherId);
+        Assert.Contains(game.GameGenres, relation => relation.GenreId == genreId);
+        Assert.Contains(game.GamePlatforms, relation => relation.PlatformId == platformId);
+        mockGameRepository.Verify(repository => repository.Update(game), Times.Once);
         mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
     }
 
