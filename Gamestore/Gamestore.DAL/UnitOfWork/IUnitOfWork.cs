@@ -10,6 +10,8 @@ public interface IUnitOfWork : IDisposable
 
     IPlatformRepository Platforms { get; }
 
+    IPublisherRepository Publishers { get; }
+
     IRepository<Domain.Entities.GameGenre> GameGenres { get; }
 
     IRepository<Domain.Entities.GamePlatform> GamePlatforms { get; }

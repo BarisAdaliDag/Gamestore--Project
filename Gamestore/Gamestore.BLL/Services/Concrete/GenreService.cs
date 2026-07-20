@@ -75,12 +75,7 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GenreS
             throw new EntityAlreadyExistsException(nameof(Genre), "name", dto.Genre.Name);
         }
 
-        if (dto.Genre.ParentGenreId == dto.Genre.Id)
-        {
-            throw new ValidationException("A genre cannot be its own parent.");
-        }
-
-        await ValidateParentGenreAsync(dto.Genre.ParentGenreId);
+        await ValidateParentGenreAsync(dto.Genre.ParentGenreId, dto.Genre.Id);
 
         genre.Name = dto.Genre.Name;
         genre.ParentGenreId = dto.Genre.ParentGenreId;
@@ -93,14 +88,27 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GenreS
         return Mapper.Map<GenreDto>(genre);
     }
 
-    private async Task ValidateParentGenreAsync(Guid? parentGenreId)
+    private async Task ValidateParentGenreAsync(Guid? parentGenreId, Guid? genreId = null)
     {
-        if (parentGenreId == null)
-        {
-            return;
-        }
+        var visitedGenreIds = new HashSet<Guid>();
+        var currentParentId = parentGenreId;
 
-        _ = await UnitOfWork.Genres.GetByIdAsync(parentGenreId.Value)
-            ?? throw new ValidationException($"Parent genre with id '{parentGenreId}' not found.");
+        while (currentParentId.HasValue)
+        {
+            if (currentParentId == genreId)
+            {
+                throw new ValidationException("A genre hierarchy cannot contain cycles.");
+            }
+
+            if (!visitedGenreIds.Add(currentParentId.Value))
+            {
+                throw new ValidationException("Parent genre hierarchy already contains a cycle.");
+            }
+
+            var parentGenre = await UnitOfWork.Genres.GetByIdAsync(currentParentId.Value)
+                ?? throw new ValidationException($"Parent genre with id '{currentParentId}' not found.");
+
+            currentParentId = parentGenre.ParentGenreId;
+        }
     }
 }

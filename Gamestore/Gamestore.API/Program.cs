@@ -9,32 +9,36 @@ namespace Gamestore.API;
 
 public static class Program
 {
+    private const string FileLogOutputTemplate =
+        "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] [RequestId: {RequestId}] {Message:lj}{NewLine}{Exception}";
+
     public static void Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
             .WriteTo.Console()
-            .WriteTo.File(
-                path: "Logs/app-.txt",
-                rollingInterval: RollingInterval.Day,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}")
-            .WriteTo.File(
-                path: "Logs/errors-.txt",
-                rollingInterval: RollingInterval.Day,
-                restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
-            .CreateLogger();
+            .CreateBootstrapLogger();
 
         try
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Host.UseSerilog();
+            builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+                loggerConfiguration
+                    .ReadFrom.Configuration(context.Configuration)
+                    .ReadFrom.Services(services)
+                    .Enrich.FromLogContext()
+                    .WriteTo.Logger(exceptionLogger => exceptionLogger
+                        .Filter.ByIncludingOnly(logEvent => logEvent.Exception is not null)
+                        .WriteTo.File(
+                            path: "Logs/exceptions-.txt",
+                            rollingInterval: RollingInterval.Day,
+                            retainedFileCountLimit: 30,
+                            shared: true,
+                            outputTemplate: FileLogOutputTemplate)));
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-            builder.Services.AddResponseCaching();
 
             builder.Services.AddCors(options =>
             {
@@ -52,8 +56,8 @@ public static class Program
 
             var app = builder.Build();
 
-            app.UseMiddleware<GlobalExceptionMiddleware>();
             app.UseMiddleware<RequestLoggingMiddleware>();
+            app.UseMiddleware<GlobalExceptionMiddleware>();
 
             if (app.Environment.IsDevelopment())
             {
@@ -63,7 +67,6 @@ public static class Program
 
             app.UseHttpsRedirection();
             app.UseCors();
-            app.UseResponseCaching();
             app.UseAuthorization();
             app.MapControllers();
 

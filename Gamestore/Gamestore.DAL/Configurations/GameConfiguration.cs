@@ -24,5 +24,19 @@ public class GameConfiguration : IEntityTypeConfiguration<Game>
 
         builder.Property(g => g.Description)
             .HasMaxLength(2000);
+
+        builder.Property(g => g.Price)
+            .IsRequired();
+
+        builder.Property(g => g.UnitInStock)
+            .IsRequired();
+
+        builder.Property(g => g.Discount)
+            .IsRequired();
+
+        builder.HasOne(g => g.Publisher)
+            .WithMany(p => p.Games)
+            .HasForeignKey(g => g.PublisherId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

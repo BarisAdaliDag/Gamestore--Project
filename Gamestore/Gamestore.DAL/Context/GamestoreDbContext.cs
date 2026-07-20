@@ -13,6 +13,8 @@ public class GamestoreDbContext(DbContextOptions<GamestoreDbContext> options) : 
 
     public DbSet<Platform> Platforms { get; set; }
 
+    public DbSet<Publisher> Publishers { get; set; }
+
     public DbSet<GameGenre> GameGenres { get; set; }
 
     public DbSet<GamePlatform> GamePlatforms { get; set; }
@@ -24,6 +26,7 @@ public class GamestoreDbContext(DbContextOptions<GamestoreDbContext> options) : 
         modelBuilder.ApplyConfiguration(new GameConfiguration());
         modelBuilder.ApplyConfiguration(new GenreConfiguration());
         modelBuilder.ApplyConfiguration(new PlatformConfiguration());
+        modelBuilder.ApplyConfiguration(new PublisherConfiguration());
         modelBuilder.ApplyConfiguration(new GameGenreConfiguration());
         modelBuilder.ApplyConfiguration(new GamePlatformConfiguration());
 

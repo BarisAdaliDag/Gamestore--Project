@@ -108,6 +108,12 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
         };
     }
 
+    public async Task<IEnumerable<GameDto>> GetByPublisherNameAsync(string companyName)
+    {
+        var games = await UnitOfWork.Games.GetByPublisherNameAsync(companyName);
+        return Mapper.Map<IEnumerable<GameDto>>(games);
+    }
+
     public async Task<GameDto> CreateAsync(CreateGameDto dto)
     {
         _logger.LogInformation("Creating game: {Name}", dto.Game.Name);
@@ -123,6 +129,7 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
         }
 
         var (genreIds, platformIds) = await ValidateRelationIdsAsync(dto.Genres, dto.Platforms);
+        await ValidatePublisherAsync(dto.Publisher);
 
         var game = new Game
         {
@@ -130,6 +137,10 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
             Name = dto.Game.Name,
             Key = key,
             Description = dto.Game.Description,
+            Price = dto.Game.Price,
+            UnitInStock = dto.Game.UnitInStock,
+            Discount = dto.Game.Discount,
+            PublisherId = dto.Publisher,
         };
 
         foreach (var genreId in genreIds)
@@ -164,10 +175,15 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
         }
 
         var (genreIds, platformIds) = await ValidateRelationIdsAsync(dto.Genres, dto.Platforms);
+        await ValidatePublisherAsync(dto.Publisher);
 
         game.Name = dto.Game.Name;
         game.Key = dto.Game.Key;
         game.Description = dto.Game.Description;
+        game.Price = dto.Game.Price;
+        game.UnitInStock = dto.Game.UnitInStock;
+        game.Discount = dto.Game.Discount;
+        game.PublisherId = dto.Publisher;
 
         game.GameGenres.Clear();
         foreach (var genreId in genreIds)
@@ -218,6 +234,12 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
     private static string GenerateKey(string name)
     {
         return name.ToLowerInvariant().Replace(" ", "-", StringComparison.Ordinal);
+    }
+
+    private async Task ValidatePublisherAsync(Guid publisherId)
+    {
+        _ = await UnitOfWork.Publishers.GetByIdAsync(publisherId)
+            ?? throw new ValidationException($"Publisher with id '{publisherId}' not found.");
     }
 
     private async Task<(List<Guid> GenreIds, List<Guid> PlatformIds)> ValidateRelationIdsAsync(

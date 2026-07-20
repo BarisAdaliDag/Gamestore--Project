@@ -16,6 +16,7 @@ public class UnitOfWork : IUnitOfWork
         Games = new GameRepository(_context);
         Genres = new GenreRepository(_context);
         Platforms = new PlatformRepository(_context);
+        Publishers = new PublisherRepository(_context);
         GameGenres = new Repository<GameGenre>(_context);
         GamePlatforms = new Repository<GamePlatform>(_context);
     }
@@ -25,6 +26,8 @@ public class UnitOfWork : IUnitOfWork
     public IGenreRepository Genres { get; }
 
     public IPlatformRepository Platforms { get; }
+
+    public IPublisherRepository Publishers { get; }
 
     public IRepository<GameGenre> GameGenres { get; }
 

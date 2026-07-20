@@ -2,14 +2,17 @@ using Gamestore.API.Models.Requests;
 using Gamestore.API.Models.Requests.Games;
 using Gamestore.API.Models.Requests.Genres;
 using Gamestore.API.Models.Requests.Platforms;
+using Gamestore.API.Models.Requests.Publishers;
 using Gamestore.API.Models.Responses.Common;
 using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Genres;
 using Gamestore.API.Models.Responses.Platforms;
+using Gamestore.API.Models.Responses.Publishers;
 using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.DTOs.Genres;
 using Gamestore.BLL.DTOs.Platforms;
+using Gamestore.BLL.DTOs.Publishers;
 using Mapster;
 
 namespace Gamestore.API.MappingProfiles;
@@ -21,6 +24,7 @@ public class VmMappingProfile : IRegister
         config.NewConfig<GameDto, GameResponse>();
         config.NewConfig<GenreDto, GenreResponse>();
         config.NewConfig<PlatformDto, PlatformResponse>();
+        config.NewConfig<PublisherDto, PublisherResponse>();
         config.NewConfig<QueryParameters, PaginationParamsDto>();
         config.NewConfig<GameQueryParameters, GameFilterDto>();
         config.NewConfig<PagedResultDto<GameDto>, PagedResponse<GameResponse>>();
@@ -41,5 +45,10 @@ public class VmMappingProfile : IRegister
         config.NewConfig<PlatformCreateInfoRequest, PlatformCreateInfoDto>();
         config.NewConfig<UpdatePlatformRequest, UpdatePlatformDto>();
         config.NewConfig<PlatformUpdateInfoRequest, PlatformUpdateInfoDto>();
+
+        config.NewConfig<CreatePublisherRequest, CreatePublisherDto>();
+        config.NewConfig<PublisherCreateInfoRequest, PublisherCreateInfoDto>();
+        config.NewConfig<UpdatePublisherRequest, UpdatePublisherDto>();
+        config.NewConfig<PublisherUpdateInfoRequest, PublisherUpdateInfoDto>();
     }
 }
