@@ -1,5 +1,4 @@
 using Gamestore.BLL.DTOs.Orders;
-using Gamestore.Domain.Entities;
 
 namespace Gamestore.BLL.Services.Abstract;
 
@@ -19,7 +18,7 @@ public interface IOrderService
 
     Task<IEnumerable<PaymentMethodDto>> GetPaymentMethodsAsync();
 
-    Task<Order> GetOpenOrderForPaymentAsync();
+    Task<OrderCheckoutDto> GetOpenOrderForPaymentAsync();
 
     Task MarkOrderAsPaidAsync(Guid orderId);
 

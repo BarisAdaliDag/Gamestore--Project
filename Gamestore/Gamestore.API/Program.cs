@@ -40,6 +40,16 @@ public static class Program
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            builder.Services.AddHttpClient("PaymentService", client =>
+            {
+                var baseUrl = builder.Configuration["PaymentService:BaseUrl"]
+                    ?? throw new InvalidOperationException(
+                        "PaymentService:BaseUrl configuration is required.");
+
+                client.BaseAddress = new Uri(baseUrl);
+                client.Timeout = TimeSpan.FromSeconds(10);
+            });
+
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>

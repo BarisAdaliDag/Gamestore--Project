@@ -132,7 +132,7 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderServic
         return Task.FromResult(methods);
     }
 
-    public async Task<Order> GetOpenOrderForPaymentAsync()
+    public async Task<OrderCheckoutDto> GetOpenOrderForPaymentAsync()
     {
         var order = await unitOfWork.Orders.GetOpenOrderByCustomerIdAsync(StubCustomerId)
             ?? throw new ValidationException("Cart is empty. Nothing to pay for.");
@@ -141,7 +141,11 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderServic
         unitOfWork.Orders.Update(order);
         await unitOfWork.SaveChangesAsync();
 
-        return order;
+        return new OrderCheckoutDto
+        {
+            Id = order.Id,
+            CustomerId = order.CustomerId,
+        };
     }
 
     public async Task MarkOrderAsPaidAsync(Guid orderId)

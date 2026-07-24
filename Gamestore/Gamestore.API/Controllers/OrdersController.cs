@@ -1,4 +1,7 @@
+using Gamestore.API.Filters;
+using Gamestore.API.Models.Requests.Orders;
 using Gamestore.API.Models.Responses.Orders;
+using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +10,10 @@ namespace Gamestore.API.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class OrdersController(IOrderService orderService, IMapper mapper) : ControllerBase
+public class OrdersController(
+    IOrderService orderService,
+    IPaymentService paymentService,
+    IMapper mapper) : ControllerBase
 {
     [HttpGet("cart")]
     public async Task<ActionResult<IEnumerable<OrderGameResponse>>> GetCart()
@@ -54,5 +60,34 @@ public class OrdersController(IOrderService orderService, IMapper mapper) : Cont
         };
 
         return Ok(response);
+    }
+
+    [HttpPost("payment")]
+    [ServiceFilter(typeof(ValidationFilter<PaymentRequest>))]
+    public async Task<IActionResult> ProcessPayment([FromBody] PaymentRequest request)
+    {
+        if (request.Method == "Bank")
+        {
+            var pdfBytes = await paymentService.ProcessBankPaymentAsync();
+            return File(
+                pdfBytes,
+                "application/pdf",
+                $"Invoice_{DateTime.UtcNow:yyyyMMddHHmmss}.pdf");
+        }
+
+        if (request.Method == "IBox terminal")
+        {
+            var result = await paymentService.ProcessIBoxPaymentAsync();
+            return Ok(mapper.Map<PaymentResultResponse>(result));
+        }
+
+        if (request.Method == "Visa")
+        {
+            var visaDto = mapper.Map<VisaPaymentModelDto>(request.Model!);
+            await paymentService.ProcessVisaPaymentAsync(visaDto);
+            return Ok();
+        }
+
+        return BadRequest(new { message = $"Unknown payment method: {request.Method}" });
     }
 }
