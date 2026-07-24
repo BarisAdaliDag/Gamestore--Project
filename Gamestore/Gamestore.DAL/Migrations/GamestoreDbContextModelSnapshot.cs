@@ -203,6 +203,54 @@ namespace Gamestore.DAL.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gamestore.Domain.Entities.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId", "Status");
+
+                    b.ToTable("Orders", (string)null);
+                });
+
+            modelBuilder.Entity("Gamestore.Domain.Entities.OrderGame", b =>
+                {
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Discount")
+                        .HasColumnType("int");
+
+                    b.Property<double>("Price")
+                        .HasColumnType("float");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.HasKey("OrderId", "ProductId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("OrderGames", (string)null);
+                });
+
             modelBuilder.Entity("Gamestore.Domain.Entities.Platform", b =>
                 {
                     b.Property<Guid>("Id")
@@ -353,11 +401,32 @@ namespace Gamestore.DAL.Migrations
                     b.Navigation("ParentGenre");
                 });
 
+            modelBuilder.Entity("Gamestore.Domain.Entities.OrderGame", b =>
+                {
+                    b.HasOne("Gamestore.Domain.Entities.Order", "Order")
+                        .WithMany("OrderGames")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Gamestore.Domain.Entities.Game", "Game")
+                        .WithMany("OrderGames")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("Gamestore.Domain.Entities.Game", b =>
                 {
                     b.Navigation("GameGenres");
 
                     b.Navigation("GamePlatforms");
+
+                    b.Navigation("OrderGames");
                 });
 
             modelBuilder.Entity("Gamestore.Domain.Entities.Genre", b =>
@@ -365,6 +434,11 @@ namespace Gamestore.DAL.Migrations
                     b.Navigation("GameGenres");
 
                     b.Navigation("SubGenres");
+                });
+
+            modelBuilder.Entity("Gamestore.Domain.Entities.Order", b =>
+                {
+                    b.Navigation("OrderGames");
                 });
 
             modelBuilder.Entity("Gamestore.Domain.Entities.Platform", b =>

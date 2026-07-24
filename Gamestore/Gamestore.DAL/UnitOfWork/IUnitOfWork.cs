@@ -12,9 +12,13 @@ public interface IUnitOfWork : IDisposable
 
     IPublisherRepository Publishers { get; }
 
+    IOrderRepository Orders { get; }
+
     IRepository<Domain.Entities.GameGenre> GameGenres { get; }
 
     IRepository<Domain.Entities.GamePlatform> GamePlatforms { get; }
+
+    IRepository<Domain.Entities.OrderGame> OrderGames { get; }
 
     Task<int> SaveChangesAsync();
 }
