@@ -12,6 +12,7 @@ public static class ServiceResolver
         services.AddScoped<IGenreService, GenreService>();
         services.AddScoped<IPlatformService, PlatformService>();
         services.AddScoped<IPublisherService, PublisherService>();
+        services.AddScoped<IOrderService, OrderService>();
 
         return services;
     }

@@ -1,5 +1,6 @@
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.DTOs.Genres;
+using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.DTOs.Platforms;
 using Gamestore.BLL.DTOs.Publishers;
 using Gamestore.Domain.Entities;
@@ -15,5 +16,7 @@ public class DtoMappingProfile : IRegister
         config.NewConfig<Genre, GenreDto>().TwoWays();
         config.NewConfig<Platform, PlatformDto>().TwoWays();
         config.NewConfig<Publisher, PublisherDto>().TwoWays();
+        config.NewConfig<Order, OrderDto>();
+        config.NewConfig<OrderGame, OrderGameDto>();
     }
 }
