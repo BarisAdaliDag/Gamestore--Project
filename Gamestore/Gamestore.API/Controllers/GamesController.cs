@@ -19,12 +19,14 @@ public class GamesController(
     IGenreService genreService,
     IPlatformService platformService,
     IPublisherService publisherService,
+    IOrderService orderService,
     IMapper mapper) : ControllerBase
 {
     private readonly IGameService _gameService = gameService;
     private readonly IGenreService _genreService = genreService;
     private readonly IPlatformService _platformService = platformService;
     private readonly IPublisherService _publisherService = publisherService;
+    private readonly IOrderService _orderService = orderService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
@@ -89,6 +91,13 @@ public class GamesController(
         var (fileBytes, fileName) = await _gameService.GenerateGameFileAsync(key);
 
         return File(fileBytes, "text/plain", fileName);
+    }
+
+    [HttpPost("{key}/buy")]
+    public async Task<IActionResult> AddToCart(string key)
+    {
+        await _orderService.AddToCartAsync(key);
+        return Ok();
     }
 
     [HttpPost]
