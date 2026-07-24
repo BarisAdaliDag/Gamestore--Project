@@ -55,6 +55,7 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
             NotFoundException => (HttpStatusCode.NotFound, exception.Message),
             EntityAlreadyExistsException => (HttpStatusCode.Conflict, exception.Message),
             EntityInUseException => (HttpStatusCode.Conflict, exception.Message),
+            OutOfStockException => (HttpStatusCode.Conflict, exception.Message),
             ValidationException => (HttpStatusCode.BadRequest, exception.Message),
             _ => (HttpStatusCode.InternalServerError, "An internal server error occurred."),
         };
@@ -65,6 +66,7 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
         var response = new
         {
             statusCode = (int)statusCode,
+            error = exception is OutOfStockException ? "OUT_OF_STOCK" : statusCode.ToString(),
             message,
         };
 

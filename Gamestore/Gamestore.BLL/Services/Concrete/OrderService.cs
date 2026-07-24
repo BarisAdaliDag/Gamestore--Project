@@ -10,8 +10,11 @@ namespace Gamestore.BLL.Services.Concrete;
 
 public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderService
 {
+    // The payment microservice validates the IBox account number against its
+    // seeded account.json. Keep the development customer aligned with that
+    // account until a real customer/account integration is introduced.
     private static readonly Guid StubCustomerId =
-        Guid.Parse("00000000-0000-0000-0000-000000000001");
+        Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
 
     public async Task AddToCartAsync(string gameKey)
     {
@@ -20,7 +23,7 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderServic
 
         if (game.UnitInStock < 1)
         {
-            throw new ValidationException($"Game '{game.Name}' is out of stock.");
+            throw new OutOfStockException($"Game '{game.Name}' is out of stock.");
         }
 
         var order = await GetOrCreateOpenOrderAsync();
@@ -30,7 +33,7 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderServic
         {
             if (existingItem.Quantity >= game.UnitInStock)
             {
-                throw new ValidationException(
+                throw new OutOfStockException(
                     $"Cannot add more. Only {game.UnitInStock} units available in stock.");
             }
 
