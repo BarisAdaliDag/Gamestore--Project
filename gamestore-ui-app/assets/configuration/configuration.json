@@ -8,6 +8,7 @@
   "gamesByPublisherApiUrl": "/publishers/{id}/games",
   "gamesByPlatformApiUrl": "/platforms/{id}/games?Page=1&Size=100",
   "getGameFile": "/games/{key}/file",
+  "addToCartApiUrl": "/games/{key}/buy",
   "updateGameApiUrl": "/games",
   "addGameApiUrl": "/games",
   "deleteGameApiUrl": "/games/{key}",
@@ -32,5 +33,13 @@
   "publisherByGameApiUrl": "/games/{key}/publisher",
   "addPublisherApiUrl": "/publishers",
   "deletePublisherApiUrl": "/publishers/{id}",
-  "updatePublisherApiUrl": "/publishers"
+  "updatePublisherApiUrl": "/publishers",
+
+  "cartApiUrl": "/orders/cart",
+  "removeFromCartApiUrl": "/orders/cart/{key}",
+  "ordersApiUrl": "/orders",
+  "orderApiUrl": "/orders/{id}",
+  "orderDetailsApiUrl": "/orders/{id}/details",
+  "paymentMethodsApiUrl": "/orders/payment-methods",
+  "paymentApiUrl": "/orders/payment"
 }
