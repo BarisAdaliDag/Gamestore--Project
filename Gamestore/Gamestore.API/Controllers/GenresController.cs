@@ -27,6 +27,12 @@ public class GenresController(
     public async Task<ActionResult<PagedResponse<GenreResponse>>> GetAll(
         [FromQuery] QueryParameters queryParameters)
     {
+        if (!Request.Query.ContainsKey("Page") && !Request.Query.ContainsKey("Size"))
+        {
+            var legacyDtos = await _genreService.GetAllAsync();
+            return Ok(_mapper.Map<IEnumerable<GenreResponse>>(legacyDtos));
+        }
+
         var paginationParams = _mapper.Map<PaginationParamsDto>(queryParameters);
         var pagedResult = await _genreService.GetPagedAsync(paginationParams);
         var response = _mapper.Map<PagedResponse<GenreResponse>>(pagedResult);
@@ -57,6 +63,12 @@ public class GenresController(
         Guid id,
         [FromQuery] QueryParameters queryParameters)
     {
+        if (!Request.Query.ContainsKey("Page") && !Request.Query.ContainsKey("Size"))
+        {
+            var legacyDtos = await _gameService.GetByGenreIdAsync(id);
+            return Ok(_mapper.Map<IEnumerable<GameResponse>>(legacyDtos));
+        }
+
         var paginationParams = _mapper.Map<PaginationParamsDto>(queryParameters);
         var pagedResult = await _gameService.GetByGenreIdAsync(id, paginationParams);
         var response = _mapper.Map<PagedResponse<GameResponse>>(pagedResult);

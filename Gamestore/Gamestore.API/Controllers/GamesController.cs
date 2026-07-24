@@ -33,6 +33,12 @@ public class GamesController(
     public async Task<ActionResult<PagedResponse<GameResponse>>> GetAll(
         [FromQuery] GameQueryParameters queryParameters)
     {
+        if (!Request.Query.ContainsKey("Page") && !Request.Query.ContainsKey("Size"))
+        {
+            var legacyDtos = await _gameService.GetAllAsync();
+            return Ok(_mapper.Map<IEnumerable<GameResponse>>(legacyDtos));
+        }
+
         var filter = _mapper.Map<GameFilterDto>(queryParameters);
         var pagedResult = await _gameService.GetFilteredAsync(filter);
         var response = _mapper.Map<PagedResponse<GameResponse>>(pagedResult);

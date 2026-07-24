@@ -27,6 +27,12 @@ public class PlatformsController(
     public async Task<ActionResult<PagedResponse<PlatformResponse>>> GetAll(
         [FromQuery] QueryParameters queryParameters)
     {
+        if (!Request.Query.ContainsKey("Page") && !Request.Query.ContainsKey("Size"))
+        {
+            var legacyDtos = await _platformService.GetAllAsync();
+            return Ok(_mapper.Map<IEnumerable<PlatformResponse>>(legacyDtos));
+        }
+
         var paginationParams = _mapper.Map<PaginationParamsDto>(queryParameters);
         var pagedResult = await _platformService.GetPagedAsync(paginationParams);
         var response = _mapper.Map<PagedResponse<PlatformResponse>>(pagedResult);
@@ -48,6 +54,12 @@ public class PlatformsController(
         Guid id,
         [FromQuery] QueryParameters queryParameters)
     {
+        if (!Request.Query.ContainsKey("Page") && !Request.Query.ContainsKey("Size"))
+        {
+            var legacyDtos = await _gameService.GetByPlatformIdAsync(id);
+            return Ok(_mapper.Map<IEnumerable<GameResponse>>(legacyDtos));
+        }
+
         var paginationParams = _mapper.Map<PaginationParamsDto>(queryParameters);
         var pagedResult = await _gameService.GetByPlatformIdAsync(id, paginationParams);
         var response = _mapper.Map<PagedResponse<GameResponse>>(pagedResult);
