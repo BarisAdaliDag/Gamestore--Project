@@ -1631,7 +1631,22 @@ class GlobalHttpInterceptorService {
             this.toastr.error('API is unavailable', apiErrorTitle);
         }
         else {
-            this.toastr.error(`API '${error.url}' returned code ${error.status}${!!error.error ? `, error body was: '${error.error}'` : ''}`, apiErrorTitle);
+            // The API returns a structured error ({ error, message }). Showing
+            // the whole object produces "[object Object]" and hides the real
+            // reason (for example, that a game is out of stock).
+            const apiMessage = typeof error.error === 'string'
+                ? error.error
+                : error.error?.message;
+            const message = apiMessage || `API returned code ${error.status}`;
+            const isOutOfStock = error.error?.error === 'OUT_OF_STOCK';
+            if (isOutOfStock) {
+                this.toastr.warning(message, 'OUT_OF_STOCK');
+                console.warn(`[OUT_OF_STOCK] ${message}`, error);
+            }
+            else {
+                this.toastr.error(message, apiErrorTitle);
+                console.error(`[API ${error.status}] ${message}`, error);
+            }
         }
         throw new Error(apiErrorTitle);
     }
