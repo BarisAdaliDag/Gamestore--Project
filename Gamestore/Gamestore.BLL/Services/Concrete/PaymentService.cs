@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Abstract;
@@ -14,9 +15,14 @@ public class PaymentService(
     IOrderService orderService,
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration,
-    ILogger<PaymentService> logger) : IPaymentService
+    ILogger<PaymentService> logger,
+    TimeProvider? timeProvider = null) : IPaymentService
 {
     private const int MaxRetryAttempts = 3;
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
     public async Task<byte[]> ProcessBankPaymentAsync()
     {
@@ -61,9 +67,10 @@ public class PaymentService(
                 invoiceNumber = order.Id,
             };
 
-            var succeeded = await SendPaymentRequestWithRetryAsync(
+            var succeeded = await SendPaymentRequestWithRetryAsync<IBoxTransactionResultDto>(
                 "/api/payments/ibox",
-                requestBody);
+                requestBody,
+                result => IsValidIBoxResponse(result, order.CustomerId, order.Id, total));
 
             if (!succeeded)
             {
@@ -104,9 +111,10 @@ public class PaymentService(
                 cvv = visaModel.Cvv2,
             };
 
-            var succeeded = await SendPaymentRequestWithRetryAsync(
+            var succeeded = await SendPaymentRequestWithRetryAsync<object>(
                 "/api/payments/visa",
-                requestBody);
+                requestBody,
+                static result => result is null);
 
             if (!succeeded)
             {
@@ -122,7 +130,20 @@ public class PaymentService(
         }
     }
 
-    private async Task<bool> SendPaymentRequestWithRetryAsync(string endpoint, object requestBody)
+    /// <summary>
+    /// Sends the payment request. Extracted as a virtual method so tests can simulate
+    /// microservice responses (success, rejection, timeout) without a real HTTP server.
+    /// </summary>
+    protected virtual Task<HttpResponseMessage> SendAsync(
+        HttpClient client,
+        string endpoint,
+        object requestBody)
+        => client.PostAsJsonAsync(endpoint, requestBody);
+
+    private async Task<bool> SendPaymentRequestWithRetryAsync<TResponse>(
+        string endpoint,
+        object requestBody,
+        Func<TResponse?, bool> isResponseValid)
     {
         var client = httpClientFactory.CreateClient("PaymentService");
 
@@ -136,16 +157,26 @@ public class PaymentService(
                     MaxRetryAttempts,
                     endpoint);
 
-                using var response = await client.PostAsJsonAsync(endpoint, requestBody);
-                if (response.IsSuccessStatusCode)
+                using var response = await SendAsync(client, endpoint, requestBody);
+                if (!response.IsSuccessStatusCode)
                 {
-                    return true;
+                    logger.LogWarning(
+                        "Payment attempt {Attempt} failed with status {StatusCode}",
+                        attempt,
+                        response.StatusCode);
                 }
+                else
+                {
+                    var body = await ReadResponseBodyAsync<TResponse>(response);
+                    if (isResponseValid(body))
+                    {
+                        return true;
+                    }
 
-                logger.LogWarning(
-                    "Payment attempt {Attempt} failed with status {StatusCode}",
-                    attempt,
-                    response.StatusCode);
+                    logger.LogWarning(
+                        "Payment attempt {Attempt} returned an invalid response body",
+                        attempt);
+                }
             }
             catch (HttpRequestException exception)
             {
@@ -158,12 +189,42 @@ public class PaymentService(
 
             if (attempt < MaxRetryAttempts)
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt));
+                await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt), _timeProvider);
             }
         }
 
         return false;
     }
+
+    private static async Task<TResponse?> ReadResponseBodyAsync<TResponse>(HttpResponseMessage response)
+    {
+        var content = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return default;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<TResponse>(content, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
+    }
+
+    // NFR2: a 200 status alone is not enough - the microservice response must echo
+    // the same account, invoice and amount that the payment was requested with.
+    private static bool IsValidIBoxResponse(
+        IBoxTransactionResultDto? result,
+        Guid expectedAccountNumber,
+        Guid expectedInvoiceNumber,
+        double expectedAmount)
+        => result is not null
+            && result.AccountNumber == expectedAccountNumber
+            && result.InvoiceNumber == expectedInvoiceNumber
+            && Math.Abs(result.Amount - expectedAmount) < 0.001;
 
     private async Task TryCancelOrderAsync(Guid orderId, Exception paymentException)
     {

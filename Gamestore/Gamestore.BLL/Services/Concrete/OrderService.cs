@@ -2,19 +2,22 @@ using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Abstract;
 using Gamestore.DAL.UnitOfWork;
+using Gamestore.Domain.Constants;
 using Gamestore.Domain.Entities;
 using Gamestore.Domain.Enums;
 using MapsterMapper;
+using Microsoft.Extensions.Configuration;
 
 namespace Gamestore.BLL.Services.Concrete;
 
-public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderService
+public class OrderService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration) : IOrderService
 {
     // The payment microservice validates the IBox account number against its
     // seeded account.json. Keep the development customer aligned with that
     // account until a real customer/account integration is introduced.
-    private static readonly Guid StubCustomerId =
-        Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+    private readonly Guid _stubCustomerId =
+        configuration.GetValue<Guid?>("Customer:StubId")
+        ?? Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
 
     public async Task AddToCartAsync(string gameKey)
     {
@@ -60,7 +63,7 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderServic
         var game = await unitOfWork.Games.GetByKeyAsync(gameKey)
             ?? throw new NotFoundException(nameof(Game), gameKey);
 
-        var order = await unitOfWork.Orders.GetOpenOrderByCustomerIdAsync(StubCustomerId)
+        var order = await unitOfWork.Orders.GetOpenOrderByCustomerIdAsync(_stubCustomerId)
             ?? throw new NotFoundException("Cart is empty. No open order found.");
 
         var item = order.OrderGames.FirstOrDefault(og => og.ProductId == game.Id)
@@ -78,7 +81,7 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderServic
 
     public async Task<IEnumerable<OrderGameDto>> GetCartAsync()
     {
-        var order = await unitOfWork.Orders.GetOpenOrderByCustomerIdAsync(StubCustomerId);
+        var order = await unitOfWork.Orders.GetOpenOrderByCustomerIdAsync(_stubCustomerId);
         return order == null
             ? []
             : mapper.Map<IEnumerable<OrderGameDto>>(order.OrderGames);
@@ -115,19 +118,19 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderServic
             new()
             {
                 ImageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/200px-Visa_Inc._logo.svg.png",
-                Title = "Visa",
+                Title = PaymentMethods.Visa,
                 Description = "Pay securely with your Visa credit or debit card.",
             },
             new()
             {
-                ImageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Former_Visa_%28company%29_logo.svg/200px-Former_Visa_%28company%29_logo.svg.png",
-                Title = "IBox terminal",
+                ImageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Payment_terminal_2.jpg/200px-Payment_terminal_2.jpg",
+                Title = PaymentMethods.IBoxTerminal,
                 Description = "Pay at any IBox terminal using your invoice number.",
             },
             new()
             {
                 ImageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Papierki.jpg/200px-Papierki.jpg",
-                Title = "Bank",
+                Title = PaymentMethods.Bank,
                 Description = "Download a bank invoice and pay via bank transfer.",
             },
         ];
@@ -137,7 +140,7 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderServic
 
     public async Task<OrderCheckoutDto> GetOpenOrderForPaymentAsync()
     {
-        var order = await unitOfWork.Orders.GetOpenOrderByCustomerIdAsync(StubCustomerId)
+        var order = await unitOfWork.Orders.GetOpenOrderByCustomerIdAsync(_stubCustomerId)
             ?? throw new ValidationException("Cart is empty. Nothing to pay for.");
 
         order.Status = OrderStatus.Checkout;
@@ -181,7 +184,7 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderServic
 
     private async Task<Order> GetOrCreateOpenOrderAsync()
     {
-        var order = await unitOfWork.Orders.GetOpenOrderByCustomerIdAsync(StubCustomerId);
+        var order = await unitOfWork.Orders.GetOpenOrderByCustomerIdAsync(_stubCustomerId);
         if (order != null)
         {
             return order;
@@ -190,7 +193,7 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper) : IOrderServic
         order = new Order
         {
             Id = Guid.NewGuid(),
-            CustomerId = StubCustomerId,
+            CustomerId = _stubCustomerId,
             Status = OrderStatus.Open,
         };
 

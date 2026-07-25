@@ -3,6 +3,7 @@ using Gamestore.API.Models.Requests.Orders;
 using Gamestore.API.Models.Responses.Orders;
 using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.Services.Abstract;
+using Gamestore.Domain.Constants;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 
@@ -66,7 +67,7 @@ public class OrdersController(
     [ServiceFilter(typeof(ValidationFilter<PaymentRequest>))]
     public async Task<IActionResult> ProcessPayment([FromBody] PaymentRequest request)
     {
-        if (request.Method == "Bank")
+        if (request.Method == PaymentMethods.Bank)
         {
             var pdfBytes = await paymentService.ProcessBankPaymentAsync();
             return File(
@@ -75,13 +76,13 @@ public class OrdersController(
                 $"Invoice_{DateTime.UtcNow:yyyyMMddHHmmss}.pdf");
         }
 
-        if (request.Method == "IBox terminal")
+        if (request.Method == PaymentMethods.IBoxTerminal)
         {
             var result = await paymentService.ProcessIBoxPaymentAsync();
             return Ok(mapper.Map<PaymentResultResponse>(result));
         }
 
-        if (request.Method == "Visa")
+        if (request.Method == PaymentMethods.Visa)
         {
             var visaDto = mapper.Map<VisaPaymentModelDto>(request.Model!);
             await paymentService.ProcessVisaPaymentAsync(visaDto);

@@ -1,21 +1,20 @@
 using FluentValidation;
 using Gamestore.API.Models.Requests.Orders;
+using Gamestore.Domain.Constants;
 
 namespace Gamestore.API.Validators.Orders;
 
 public class PaymentRequestValidator : AbstractValidator<PaymentRequest>
 {
-    private static readonly string[] AllowedMethods = ["Bank", "IBox terminal", "Visa"];
-
     public PaymentRequestValidator()
     {
         RuleFor(x => x.Method)
             .NotEmpty()
             .WithMessage("Payment method is required.")
-            .Must(method => AllowedMethods.Contains(method, StringComparer.Ordinal))
+            .Must(method => PaymentMethods.All.Contains(method, StringComparer.Ordinal))
             .WithMessage("Payment method must be one of: Bank, IBox terminal, Visa.");
 
-        When(x => x.Method == "Visa", () =>
+        When(x => x.Method == PaymentMethods.Visa, () =>
         {
             RuleFor(x => x.Model)
                 .NotNull()
