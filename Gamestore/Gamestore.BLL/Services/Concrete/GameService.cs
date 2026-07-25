@@ -212,6 +212,13 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
         var game = await UnitOfWork.Games.GetByKeyAsync(key)
             ?? throw new NotFoundException(nameof(Game), key);
 
+        var isInAnyOrder = (await UnitOfWork.OrderGames
+            .FindAsync(orderGame => orderGame.ProductId == game.Id)).Any();
+        if (isInAnyOrder)
+        {
+            throw new EntityInUseException(nameof(Game), key);
+        }
+
         UnitOfWork.Games.Delete(game);
         await UnitOfWork.SaveChangesAsync();
 

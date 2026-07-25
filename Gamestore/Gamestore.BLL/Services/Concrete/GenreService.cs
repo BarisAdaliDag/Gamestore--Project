@@ -61,6 +61,22 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GenreS
         return Mapper.Map<GenreDto>(genre);
     }
 
+    public override async Task DeleteAsync(Guid id)
+    {
+        var genre = await UnitOfWork.Genres.GetByIdAsync(id)
+            ?? throw new NotFoundException(nameof(Genre), id);
+
+        var hasSubGenres = (await UnitOfWork.Genres
+            .FindAsync(g => g.ParentGenreId == id)).Any();
+        if (hasSubGenres)
+        {
+            throw new EntityInUseException(nameof(Genre), id);
+        }
+
+        UnitOfWork.Genres.Delete(genre);
+        await UnitOfWork.SaveChangesAsync();
+    }
+
     public async Task<GenreDto> UpdateAsync(UpdateGenreDto dto)
     {
         _logger.LogInformation("Updating genre: {Id}", dto.Genre.Id);

@@ -1,5 +1,5 @@
 {
-  "baseApiUrl": "https://localhost:7077/",
+  "baseApiUrl": "https://localhost:7177/",
 
   "gameApiUrl": "games/{key}",
   "gameByIdApiUrl": "games/find/{id}",

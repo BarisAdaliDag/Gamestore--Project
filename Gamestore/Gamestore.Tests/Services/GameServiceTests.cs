@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Concrete;
@@ -352,9 +353,17 @@ public class GameServiceTests
         mockGameRepository.Setup(repository => repository.GetByKeyAsync(key))
             .ReturnsAsync(game);
 
+        List<OrderGame> noOrderGames = [];
+        var mockOrderGameRepository = new Mock<IRepository<OrderGame>>();
+        mockOrderGameRepository.Setup(repository => repository.FindAsync(
+                It.IsAny<Expression<Func<OrderGame, bool>>>()))
+            .ReturnsAsync(noOrderGames);
+
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
             .Returns(mockGameRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.OrderGames)
+            .Returns(mockOrderGameRepository.Object);
         mockUnitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync())
             .ReturnsAsync(1);
 
@@ -433,5 +442,69 @@ public class GameServiceTests
         var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
 
         await Assert.ThrowsAsync<NotFoundException>(() => service.GenerateGameFileAsync(key));
+    }
+
+    [Fact]
+    public async Task DeleteByKeyAsyncShouldThrowEntityInUseExceptionWhenGameIsInAnOrder()
+    {
+        var key = "halo";
+        var game = new Game { Id = Guid.NewGuid(), Name = "Halo", Key = key };
+
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByKeyAsync(key))
+            .ReturnsAsync(game);
+
+        List<OrderGame> orderGames = [new() { OrderId = Guid.NewGuid(), ProductId = game.Id }];
+        var mockOrderGameRepository = new Mock<IRepository<OrderGame>>();
+        mockOrderGameRepository.Setup(repository => repository.FindAsync(
+                It.IsAny<Expression<Func<OrderGame, bool>>>()))
+            .ReturnsAsync(orderGames);
+
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
+            .Returns(mockGameRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.OrderGames)
+            .Returns(mockOrderGameRepository.Object);
+
+        var mockMapper = new Mock<IMapper>();
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        await Assert.ThrowsAsync<EntityInUseException>(() => service.DeleteByKeyAsync(key));
+
+        mockGameRepository.Verify(repository => repository.Delete(It.IsAny<Game>()), Times.Never);
+        mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteByKeyAsyncShouldDeleteGameWhenGameIsNotInAnyOrder()
+    {
+        var key = "halo";
+        var game = new Game { Id = Guid.NewGuid(), Name = "Halo", Key = key };
+
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByKeyAsync(key))
+            .ReturnsAsync(game);
+
+        List<OrderGame> noOrderGames = [];
+        var mockOrderGameRepository = new Mock<IRepository<OrderGame>>();
+        mockOrderGameRepository.Setup(repository => repository.FindAsync(
+                It.IsAny<Expression<Func<OrderGame, bool>>>()))
+            .ReturnsAsync(noOrderGames);
+
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
+            .Returns(mockGameRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.OrderGames)
+            .Returns(mockOrderGameRepository.Object);
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.SaveChangesAsync())
+            .ReturnsAsync(1);
+
+        var mockMapper = new Mock<IMapper>();
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        await service.DeleteByKeyAsync(key);
+
+        mockGameRepository.Verify(repository => repository.Delete(game), Times.Once);
+        mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
     }
 }

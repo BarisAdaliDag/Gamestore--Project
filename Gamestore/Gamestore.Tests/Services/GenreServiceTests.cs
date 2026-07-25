@@ -284,4 +284,44 @@ public class GenreServiceTests
 
         _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
     }
+
+    [Fact]
+    public async Task DeleteAsyncShouldThrowEntityInUseExceptionWhenGenreHasSubGenres()
+    {
+        var id = Guid.NewGuid();
+        var genre = new Genre { Id = id, Name = "Action" };
+
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(id))
+            .ReturnsAsync(genre);
+
+        List<Genre> subGenres = [new() { Id = Guid.NewGuid(), Name = "Shooter", ParentGenreId = id }];
+        _mockGenreRepository.Setup(repository => repository.FindAsync(
+                It.IsAny<Expression<Func<Genre, bool>>>()))
+            .ReturnsAsync(subGenres);
+
+        await Assert.ThrowsAsync<EntityInUseException>(() => _service.DeleteAsync(id));
+
+        _mockGenreRepository.Verify(repository => repository.Delete(It.IsAny<Genre>()), Times.Never);
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncShouldDeleteGenreWhenNotInUse()
+    {
+        var id = Guid.NewGuid();
+        var genre = new Genre { Id = id, Name = "Action" };
+
+        _mockGenreRepository.Setup(repository => repository.GetByIdAsync(id))
+            .ReturnsAsync(genre);
+
+        List<Genre> noSubGenres = [];
+        _mockGenreRepository.Setup(repository => repository.FindAsync(
+                It.IsAny<Expression<Func<Genre, bool>>>()))
+            .ReturnsAsync(noSubGenres);
+
+        await _service.DeleteAsync(id);
+
+        _mockGenreRepository.Verify(repository => repository.Delete(genre), Times.Once);
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
 }
