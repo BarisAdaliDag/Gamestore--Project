@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Gamestore.API.DependencyResolvers;
 using Gamestore.API.MapperResolvers;
 using Gamestore.API.Middlewares;
@@ -36,7 +37,13 @@ public static class Program
                             shared: true,
                             outputTemplate: FileLogOutputTemplate)));
 
-            builder.Services.AddControllers();
+            // Accept string enum values (e.g. "Reply"); raise MaxDepth for deep comment trees
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                    options.JsonSerializerOptions.MaxDepth = 256;
+                });
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 

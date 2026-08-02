@@ -1,10 +1,13 @@
 using Gamestore.API.Filters;
+using Gamestore.API.Models.Requests.Comments;
 using Gamestore.API.Models.Requests.Games;
+using Gamestore.API.Models.Responses.Comments;
 using Gamestore.API.Models.Responses.Common;
 using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Genres;
 using Gamestore.API.Models.Responses.Platforms;
 using Gamestore.API.Models.Responses.Publishers;
+using Gamestore.BLL.DTOs.Comments;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
@@ -20,6 +23,7 @@ public class GamesController(
     IPlatformService platformService,
     IPublisherService publisherService,
     IOrderService orderService,
+    ICommentService commentService,
     IMapper mapper) : ControllerBase
 {
     private readonly IGameService _gameService = gameService;
@@ -27,6 +31,7 @@ public class GamesController(
     private readonly IPlatformService _platformService = platformService;
     private readonly IPublisherService _publisherService = publisherService;
     private readonly IOrderService _orderService = orderService;
+    private readonly ICommentService _commentService = commentService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
@@ -133,6 +138,31 @@ public class GamesController(
     {
         await _gameService.DeleteByKeyAsync(key);
 
+        return NoContent();
+    }
+
+    /// <summary>Adds a comment (or reply/quote) to a game.</summary>
+    [HttpPost("{key}/comments")]
+    public async Task<IActionResult> AddComment(string key, [FromBody] CreateCommentRequest request)
+    {
+        var dto = _mapper.Map<CreateCommentDto>(request);
+        await _commentService.AddAsync(key, dto);
+        return Ok();
+    }
+
+    /// <summary>Gets all comments of a game as a tree.</summary>
+    [HttpGet("{key}/comments")]
+    public async Task<ActionResult<IEnumerable<CommentResponse>>> GetComments(string key)
+    {
+        var comments = await _commentService.GetByGameKeyAsync(key);
+        return Ok(_mapper.Map<IEnumerable<CommentResponse>>(comments));
+    }
+
+    /// <summary>Soft-deletes a comment. Child comments are preserved.</summary>
+    [HttpDelete("{key}/comments/{id:guid}")]
+    public async Task<IActionResult> DeleteComment(string key, Guid id)
+    {
+        await _commentService.DeleteAsync(key, id);
         return NoContent();
     }
 }
