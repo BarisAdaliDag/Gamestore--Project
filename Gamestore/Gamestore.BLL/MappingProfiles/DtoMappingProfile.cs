@@ -18,5 +18,9 @@ public class DtoMappingProfile : IRegister
         config.NewConfig<Publisher, PublisherDto>().TwoWays();
         config.NewConfig<Order, OrderDto>();
         config.NewConfig<OrderGame, OrderGameDto>();
+
+        // NOTE: The Comment -> CommentDto mapping is intentionally not defined.
+        // The Body field is calculated based on the parent (reply/quote/deleted) and the tree
+        // is built in memory; therefore it is constructed manually inside CommentService.
     }
 }
