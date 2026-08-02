@@ -1,21 +1,25 @@
 using Gamestore.API.Models.Requests;
+using Gamestore.API.Models.Requests.Comments;
 using Gamestore.API.Models.Requests.Games;
 using Gamestore.API.Models.Requests.Genres;
 using Gamestore.API.Models.Requests.Orders;
 using Gamestore.API.Models.Requests.Platforms;
 using Gamestore.API.Models.Requests.Publishers;
+using Gamestore.API.Models.Responses.Comments;
 using Gamestore.API.Models.Responses.Common;
 using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Genres;
 using Gamestore.API.Models.Responses.Orders;
 using Gamestore.API.Models.Responses.Platforms;
 using Gamestore.API.Models.Responses.Publishers;
+using Gamestore.BLL.DTOs.Comments;
 using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.DTOs.Genres;
 using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.DTOs.Platforms;
 using Gamestore.BLL.DTOs.Publishers;
+using Gamestore.Domain.Enums;
 using Mapster;
 
 namespace Gamestore.API.MappingProfiles;
@@ -60,5 +64,20 @@ public class VmMappingProfile : IRegister
         config.NewConfig<PaymentResultDto, PaymentResultResponse>();
         config.NewConfig<PaymentRequest, PaymentRequestDto>();
         config.NewConfig<VisaPaymentModel, VisaPaymentModelDto>();
+
+        // --- Comments ---
+
+        // Nested request -> nested DTO (pure copy)
+        config.NewConfig<CommentCreateInfoRequest, CommentCreateInfoDto>();
+
+        // Boundary normalization: action may be null/missing in JSON -> None
+        config.NewConfig<CreateCommentRequest, CreateCommentDto>()
+            .Map(dest => dest.Action, src => src.Action ?? CommentAction.None);
+
+        config.NewConfig<BanRequest, BanUserDto>();
+
+        // Recursive but SAFE: the tree is already built, no computation, no back-reference.
+        // (Comparison: Comment -> CommentDto mapping is intentionally absent, see DtoMappingProfile)
+        config.NewConfig<CommentDto, CommentResponse>();
     }
 }
