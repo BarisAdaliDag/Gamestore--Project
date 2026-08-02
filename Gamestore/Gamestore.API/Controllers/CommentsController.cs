@@ -1,3 +1,4 @@
+using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Comments;
 using Gamestore.BLL.DTOs.Comments;
 using Gamestore.BLL.Services.Abstract;
@@ -19,6 +20,7 @@ public class CommentsController(ICommentService commentService, IMapper mapper) 
 
     /// <summary>Bans a user from commenting for the given duration.</summary>
     [HttpPost("ban")]
+    [ServiceFilter(typeof(ValidationFilter<BanRequest>))]
     public async Task<IActionResult> Ban([FromBody] BanRequest request)
     {
         var dto = mapper.Map<BanUserDto>(request);

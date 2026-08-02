@@ -143,6 +143,7 @@ public class GamesController(
 
     /// <summary>Adds a comment (or reply/quote) to a game.</summary>
     [HttpPost("{key}/comments")]
+    [ServiceFilter(typeof(ValidationFilter<CreateCommentRequest>))]
     public async Task<IActionResult> AddComment(string key, [FromBody] CreateCommentRequest request)
     {
         var dto = _mapper.Map<CreateCommentDto>(request);
