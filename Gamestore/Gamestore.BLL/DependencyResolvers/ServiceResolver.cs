@@ -14,6 +14,7 @@ public static class ServiceResolver
         services.AddScoped<IPublisherService, PublisherService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<ICommentService, CommentService>();
 
         return services;
     }
