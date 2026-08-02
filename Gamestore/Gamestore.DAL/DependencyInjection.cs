@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<IGenreRepository, GenreRepository>();
         services.AddScoped<IPlatformRepository, PlatformRepository>();
         services.AddScoped<IPublisherRepository, PublisherRepository>();
+        services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
 
         return services;

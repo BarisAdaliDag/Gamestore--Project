@@ -17,8 +17,10 @@ public class UnitOfWork : IUnitOfWork
         Genres = new GenreRepository(_context);
         Platforms = new PlatformRepository(_context);
         Publishers = new PublisherRepository(_context);
+        Orders = new OrderRepository(_context);
         GameGenres = new Repository<GameGenre>(_context);
         GamePlatforms = new Repository<GamePlatform>(_context);
+        OrderGames = new Repository<OrderGame>(_context);
     }
 
     public IGameRepository Games { get; }
@@ -29,9 +31,13 @@ public class UnitOfWork : IUnitOfWork
 
     public IPublisherRepository Publishers { get; }
 
+    public IOrderRepository Orders { get; }
+
     public IRepository<GameGenre> GameGenres { get; }
 
     public IRepository<GamePlatform> GamePlatforms { get; }
+
+    public IRepository<OrderGame> OrderGames { get; }
 
     public async Task<int> SaveChangesAsync()
     {

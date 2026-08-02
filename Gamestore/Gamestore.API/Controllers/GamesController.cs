@@ -19,18 +19,26 @@ public class GamesController(
     IGenreService genreService,
     IPlatformService platformService,
     IPublisherService publisherService,
+    IOrderService orderService,
     IMapper mapper) : ControllerBase
 {
     private readonly IGameService _gameService = gameService;
     private readonly IGenreService _genreService = genreService;
     private readonly IPlatformService _platformService = platformService;
     private readonly IPublisherService _publisherService = publisherService;
+    private readonly IOrderService _orderService = orderService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<ActionResult<PagedResponse<GameResponse>>> GetAll(
         [FromQuery] GameQueryParameters queryParameters)
     {
+        if (!Request.Query.ContainsKey("Page") && !Request.Query.ContainsKey("Size"))
+        {
+            var legacyDtos = await _gameService.GetAllAsync();
+            return Ok(_mapper.Map<IEnumerable<GameResponse>>(legacyDtos));
+        }
+
         var filter = _mapper.Map<GameFilterDto>(queryParameters);
         var pagedResult = await _gameService.GetFilteredAsync(filter);
         var response = _mapper.Map<PagedResponse<GameResponse>>(pagedResult);
@@ -89,6 +97,13 @@ public class GamesController(
         var (fileBytes, fileName) = await _gameService.GenerateGameFileAsync(key);
 
         return File(fileBytes, "text/plain", fileName);
+    }
+
+    [HttpPost("{key}/buy")]
+    public async Task<IActionResult> AddToCart(string key)
+    {
+        await _orderService.AddToCartAsync(key);
+        return Ok();
     }
 
     [HttpPost]

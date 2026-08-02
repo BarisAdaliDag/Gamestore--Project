@@ -23,4 +23,6 @@ public class Game
     public ICollection<GameGenre> GameGenres { get; set; } = [];
 
     public ICollection<GamePlatform> GamePlatforms { get; set; } = [];
+
+    public ICollection<OrderGame> OrderGames { get; set; } = [];
 }

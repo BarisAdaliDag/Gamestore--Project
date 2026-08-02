@@ -21,6 +21,6 @@ public class PublisherRepository(GamestoreDbContext context) : Repository<Publis
     {
         return await DbSet
             .AsNoTracking()
-            .AnyAsync(p => p.Id == publisherId && p.Games.Any());
+            .AnyAsync(p => p.Id == publisherId && p.Games.Count > 0);
     }
 }
