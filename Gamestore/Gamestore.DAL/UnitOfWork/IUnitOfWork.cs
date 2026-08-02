@@ -1,4 +1,5 @@
 ﻿using Gamestore.DAL.Repositories.Abstract;
+using Gamestore.Domain.Entities;
 
 namespace Gamestore.DAL.UnitOfWork;
 
@@ -19,6 +20,10 @@ public interface IUnitOfWork : IDisposable
     IRepository<Domain.Entities.GamePlatform> GamePlatforms { get; }
 
     IRepository<Domain.Entities.OrderGame> OrderGames { get; }
+
+    ICommentRepository Comments { get; }
+
+    IRepository<Ban> Bans { get; }
 
     Task<int> SaveChangesAsync();
 }
