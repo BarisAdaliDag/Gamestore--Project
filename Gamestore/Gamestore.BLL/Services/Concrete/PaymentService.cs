@@ -76,7 +76,7 @@ public class PaymentService(
                 invoiceNumber = order.Id,
             };
 
-            var succeeded = await SendPaymentRequestWithRetryAsync<IBoxTransactionResultDto>(
+            var succeeded = await SendPaymentRequestWithRetryAsync<BoxTransactionResultDto>(
                 "/api/payments/ibox",
                 requestBody,
                 result => IsValidIBoxResponse(result, order.CustomerId, order.Id, total));
@@ -254,7 +254,7 @@ public class PaymentService(
     // NFR2: a 200 status alone is not enough - the microservice response must echo
     // the same account, invoice and amount that the payment was requested with.
     private static bool IsValidIBoxResponse(
-        IBoxTransactionResultDto? result,
+        BoxTransactionResultDto? result,
         Guid expectedAccountNumber,
         Guid expectedInvoiceNumber,
         double expectedAmount)
