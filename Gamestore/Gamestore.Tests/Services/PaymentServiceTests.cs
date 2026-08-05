@@ -61,6 +61,9 @@ public class PaymentServiceTests
         _mockOrderService.Verify(
             service => service.MarkOrderAsCancelledAsync(It.IsAny<Guid>()),
             Times.Never);
+        _mockOrderService.Verify(
+            service => service.ResetOrderForRetryAsync(It.IsAny<Guid>()),
+            Times.Never);
     }
 
     [Fact]
@@ -77,6 +80,9 @@ public class PaymentServiceTests
         _mockOrderService.Verify(service => service.MarkOrderAsPaidAsync(OrderId), Times.Once);
         _mockOrderService.Verify(
             service => service.MarkOrderAsCancelledAsync(It.IsAny<Guid>()),
+            Times.Never);
+        _mockOrderService.Verify(
+            service => service.ResetOrderForRetryAsync(It.IsAny<Guid>()),
             Times.Never);
     }
 
@@ -110,7 +116,7 @@ public class PaymentServiceTests
     public async Task ProcessIBoxPaymentAsyncShouldRetryWhenRequestFails()
     {
         _service.EnqueueResponse(() => throw new HttpRequestException("Connection refused"));
-        _service.EnqueueResponse(() => EmptyResponse(HttpStatusCode.PaymentRequired));
+        _service.EnqueueResponse(() => EmptyResponse(HttpStatusCode.InternalServerError));
         _service.EnqueueResponse(() => JsonResponse(ValidIBoxBody()));
 
         await _service.ProcessIBoxPaymentAsync();
@@ -120,7 +126,7 @@ public class PaymentServiceTests
     }
 
     [Fact]
-    public async Task ProcessIBoxPaymentAsyncShouldCancelOrderWhenAllRetriesFail()
+    public async Task ProcessIBoxPaymentAsyncShouldResetOrderWhenAllRetriesFail()
     {
         for (var attempt = 0; attempt < 3; attempt++)
         {
@@ -131,7 +137,8 @@ public class PaymentServiceTests
 
         Assert.Equal(3, _service.SendCallCount);
         _mockOrderService.Verify(service => service.MarkOrderAsPaidAsync(It.IsAny<Guid>()), Times.Never);
-        _mockOrderService.Verify(service => service.MarkOrderAsCancelledAsync(OrderId), Times.Once);
+        _mockOrderService.Verify(service => service.MarkOrderAsCancelledAsync(It.IsAny<Guid>()), Times.Never);
+        _mockOrderService.Verify(service => service.ResetOrderForRetryAsync(OrderId), Times.Once);
     }
 
     [Fact]
@@ -146,21 +153,38 @@ public class PaymentServiceTests
         _mockOrderService.Verify(
             service => service.MarkOrderAsCancelledAsync(It.IsAny<Guid>()),
             Times.Never);
+        _mockOrderService.Verify(
+            service => service.ResetOrderForRetryAsync(It.IsAny<Guid>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task ProcessVisaPaymentAsyncShouldCancelOrderWhenAllRetriesFail()
+    public async Task ProcessVisaPaymentAsyncShouldNotRetryWhenProviderRejectsRequest()
+    {
+        _service.EnqueueResponse(() => EmptyResponse(HttpStatusCode.BadRequest));
+
+        await Assert.ThrowsAsync<ValidationException>(() => _service.ProcessVisaPaymentAsync(CreateVisaModel()));
+
+        Assert.Equal(1, _service.SendCallCount);
+        _mockOrderService.Verify(service => service.MarkOrderAsPaidAsync(It.IsAny<Guid>()), Times.Never);
+        _mockOrderService.Verify(service => service.MarkOrderAsCancelledAsync(It.IsAny<Guid>()), Times.Never);
+        _mockOrderService.Verify(service => service.ResetOrderForRetryAsync(OrderId), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessVisaPaymentAsyncShouldResetOrderWhenTransientFailuresExhaustRetries()
     {
         for (var attempt = 0; attempt < 3; attempt++)
         {
-            _service.EnqueueResponse(() => EmptyResponse(HttpStatusCode.BadRequest));
+            _service.EnqueueResponse(() => EmptyResponse(HttpStatusCode.InternalServerError));
         }
 
         await Assert.ThrowsAsync<ValidationException>(() => _service.ProcessVisaPaymentAsync(CreateVisaModel()));
 
         Assert.Equal(3, _service.SendCallCount);
         _mockOrderService.Verify(service => service.MarkOrderAsPaidAsync(It.IsAny<Guid>()), Times.Never);
-        _mockOrderService.Verify(service => service.MarkOrderAsCancelledAsync(OrderId), Times.Once);
+        _mockOrderService.Verify(service => service.MarkOrderAsCancelledAsync(It.IsAny<Guid>()), Times.Never);
+        _mockOrderService.Verify(service => service.ResetOrderForRetryAsync(OrderId), Times.Once);
     }
 
     private static string ValidIBoxBody()

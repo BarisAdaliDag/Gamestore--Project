@@ -235,6 +235,22 @@ public class OrderServiceTests
     }
 
     [Fact]
+    public async Task ResetOrderForRetryAsyncShouldSetOpenStatusSoPaymentCanBeRetried()
+    {
+        var order = CreateOpenOrder();
+        order.Status = OrderStatus.Checkout;
+
+        _mockOrderRepository.Setup(repository => repository.GetByIdAsync(order.Id))
+            .ReturnsAsync(order);
+
+        await _service.ResetOrderForRetryAsync(order.Id);
+
+        Assert.Equal(OrderStatus.Open, order.Status);
+        _mockOrderRepository.Verify(repository => repository.Update(order), Times.Once);
+        _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
     public void CalculateOrderTotalShouldApplyDiscounts()
     {
         var items = new List<OrderGameDto>

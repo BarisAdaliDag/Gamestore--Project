@@ -5,6 +5,8 @@ using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Abstract;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.Retry;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -23,6 +25,13 @@ public class PaymentService(
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
+
+    private enum PaymentAttemptOutcome
+    {
+        Success,
+        TransientFailure,
+        PermanentFailure,
+    }
 
     public async Task<byte[]> ProcessBankPaymentAsync()
     {
@@ -47,7 +56,7 @@ public class PaymentService(
         }
         catch (Exception exception)
         {
-            await TryCancelOrderAsync(order.Id, exception);
+            await TryResetOrderAsync(order.Id, exception);
             throw;
         }
     }
@@ -88,7 +97,7 @@ public class PaymentService(
         }
         catch (Exception exception)
         {
-            await TryCancelOrderAsync(order.Id, exception);
+            await TryResetOrderAsync(order.Id, exception);
             throw;
         }
     }
@@ -125,7 +134,7 @@ public class PaymentService(
         }
         catch (Exception exception)
         {
-            await TryCancelOrderAsync(order.Id, exception);
+            await TryResetOrderAsync(order.Id, exception);
             throw;
         }
     }
@@ -146,54 +155,82 @@ public class PaymentService(
         Func<TResponse?, bool> isResponseValid)
     {
         var client = httpClientFactory.CreateClient("PaymentService");
+        var attempt = 0;
 
-        for (var attempt = 1; attempt <= MaxRetryAttempts; attempt++)
+        var pipelineBuilder = new ResiliencePipelineBuilder<PaymentAttemptOutcome>
         {
-            try
+            TimeProvider = _timeProvider,
+        };
+
+        var retryOptions = new RetryStrategyOptions<PaymentAttemptOutcome>
+        {
+            MaxRetryAttempts = MaxRetryAttempts - 1,
+            Delay = TimeSpan.FromMilliseconds(500),
+            BackoffType = DelayBackoffType.Linear,
+            ShouldHandle = new PredicateBuilder<PaymentAttemptOutcome>()
+                .HandleResult(outcome => outcome == PaymentAttemptOutcome.TransientFailure),
+        };
+
+        var pipeline = pipelineBuilder.AddRetry(retryOptions).Build();
+
+        var outcome = await pipeline.ExecuteAsync(
+            async cancellationToken =>
             {
+                attempt++;
                 logger.LogInformation(
                     "Payment attempt {Attempt}/{MaxAttempts} to {Endpoint}",
                     attempt,
                     MaxRetryAttempts,
                     endpoint);
 
-                using var response = await SendAsync(client, endpoint, requestBody);
-                if (!response.IsSuccessStatusCode)
+                try
                 {
-                    logger.LogWarning(
-                        "Payment attempt {Attempt} failed with status {StatusCode}",
-                        attempt,
-                        response.StatusCode);
-                }
-                else
-                {
+                    using var response = await SendAsync(client, endpoint, requestBody);
+                    var statusCode = (int)response.StatusCode;
+
+                    if (statusCode is >= 400 and < 500)
+                    {
+                        logger.LogWarning(
+                            "Payment attempt {Attempt} rejected with status {StatusCode}. The request is invalid, so no retry will be attempted.",
+                            attempt,
+                            response.StatusCode);
+                        return PaymentAttemptOutcome.PermanentFailure;
+                    }
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        logger.LogWarning(
+                            "Payment attempt {Attempt} failed with status {StatusCode}",
+                            attempt,
+                            response.StatusCode);
+                        return PaymentAttemptOutcome.TransientFailure;
+                    }
+
                     var body = await ReadResponseBodyAsync<TResponse>(response);
                     if (isResponseValid(body))
                     {
-                        return true;
+                        return PaymentAttemptOutcome.Success;
                     }
 
                     logger.LogWarning(
                         "Payment attempt {Attempt} returned an invalid response body",
                         attempt);
+                    return PaymentAttemptOutcome.TransientFailure;
                 }
-            }
-            catch (HttpRequestException exception)
-            {
-                logger.LogWarning(exception, "Payment attempt {Attempt} failed", attempt);
-            }
-            catch (TaskCanceledException exception)
-            {
-                logger.LogWarning(exception, "Payment attempt {Attempt} timed out", attempt);
-            }
+                catch (HttpRequestException exception)
+                {
+                    logger.LogWarning(exception, "Payment attempt {Attempt} failed", attempt);
+                    return PaymentAttemptOutcome.TransientFailure;
+                }
+                catch (TaskCanceledException exception)
+                {
+                    logger.LogWarning(exception, "Payment attempt {Attempt} timed out", attempt);
+                    return PaymentAttemptOutcome.TransientFailure;
+                }
+            },
+            CancellationToken.None);
 
-            if (attempt < MaxRetryAttempts)
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt), _timeProvider);
-            }
-        }
-
-        return false;
+        return outcome == PaymentAttemptOutcome.Success;
     }
 
     private static async Task<TResponse?> ReadResponseBodyAsync<TResponse>(HttpResponseMessage response)
@@ -226,17 +263,17 @@ public class PaymentService(
             && result.InvoiceNumber == expectedInvoiceNumber
             && Math.Abs(result.Amount - expectedAmount) < 0.001;
 
-    private async Task TryCancelOrderAsync(Guid orderId, Exception paymentException)
+    private async Task TryResetOrderAsync(Guid orderId, Exception paymentException)
     {
         try
         {
-            await orderService.MarkOrderAsCancelledAsync(orderId);
+            await orderService.ResetOrderForRetryAsync(orderId);
         }
-        catch (Exception cancellationException)
+        catch (Exception resetException)
         {
             logger.LogError(
-                cancellationException,
-                "Could not mark order {OrderId} as cancelled after payment failure: {PaymentError}",
+                resetException,
+                "Could not reset order {OrderId} for retry after payment failure: {PaymentError}",
                 orderId,
                 paymentException.Message);
         }
