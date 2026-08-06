@@ -176,6 +176,16 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration
         await unitOfWork.SaveChangesAsync();
     }
 
+    public async Task ResetOrderForRetryAsync(Guid orderId)
+    {
+        var order = await unitOfWork.Orders.GetByIdAsync(orderId)
+            ?? throw new NotFoundException(nameof(Order), orderId);
+
+        order.Status = OrderStatus.Open;
+        unitOfWork.Orders.Update(order);
+        await unitOfWork.SaveChangesAsync();
+    }
+
     public double CalculateOrderTotal(IEnumerable<OrderGameDto> items)
     {
         return items.Sum(item =>

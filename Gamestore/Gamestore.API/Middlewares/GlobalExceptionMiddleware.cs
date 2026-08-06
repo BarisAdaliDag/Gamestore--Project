@@ -24,6 +24,15 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
 
     private void LogExceptionDetails(Exception exception)
     {
+        // ForbiddenException is an expected authorization rejection, not a server error
+        if (exception is ForbiddenException)
+        {
+            _logger.LogWarning(
+                "Forbidden: {Message}",
+                exception.Message);
+            return;
+        }
+
         _logger.LogError(
             exception,
             "Exception Type: {ExceptionType} | Message: {Message} | InnerException: {InnerException}",
@@ -53,6 +62,7 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
         var (statusCode, message) = exception switch
         {
             NotFoundException => (HttpStatusCode.NotFound, exception.Message),
+            ForbiddenException => (HttpStatusCode.Forbidden, exception.Message),
             EntityAlreadyExistsException => (HttpStatusCode.Conflict, exception.Message),
             EntityInUseException => (HttpStatusCode.Conflict, exception.Message),
             OutOfStockException => (HttpStatusCode.Conflict, exception.Message),

@@ -4,7 +4,7 @@ namespace Gamestore.BLL.DTOs.Orders;
 /// Response body returned by the payment microservice for a successful IBox transaction.
 /// Used to validate that the payment was actually accepted (NFR2).
 /// </summary>
-public class IBoxTransactionResultDto
+public class BoxTransactionResultDto
 {
     public Guid AccountNumber { get; set; }
 

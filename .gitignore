@@ -6,3 +6,6 @@ TestResults/
 *.user
 *.suo
 *.rsuser
+*.log
+*.log
+*.ps1

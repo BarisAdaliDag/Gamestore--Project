@@ -24,5 +24,7 @@ public interface IOrderService
 
     Task MarkOrderAsCancelledAsync(Guid orderId);
 
+    Task ResetOrderForRetryAsync(Guid orderId);
+
     double CalculateOrderTotal(IEnumerable<OrderGameDto> items);
 }

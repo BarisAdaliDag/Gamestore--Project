@@ -21,6 +21,8 @@ public class UnitOfWork : IUnitOfWork
         GameGenres = new Repository<GameGenre>(_context);
         GamePlatforms = new Repository<GamePlatform>(_context);
         OrderGames = new Repository<OrderGame>(_context);
+        Comments = new CommentRepository(_context);
+        Bans = new Repository<Ban>(_context);
     }
 
     public IGameRepository Games { get; }
@@ -38,6 +40,10 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<GamePlatform> GamePlatforms { get; }
 
     public IRepository<OrderGame> OrderGames { get; }
+
+    public ICommentRepository Comments { get; }
+
+    public IRepository<Ban> Bans { get; }
 
     public async Task<int> SaveChangesAsync()
     {

@@ -1,6 +1,6 @@
 {
-  "baseApiUrl": "https://localhost:7177/",
 
+  "baseApiUrl": "https://localhost:7177/",
   "gameApiUrl": "games/{key}",
   "gameByIdApiUrl": "games/find/{id}",
   "gamesApiUrl": "games",
@@ -41,5 +41,13 @@
   "cancelGameBuyApiUrl": "orders/cart/{key}",
   "basketApiUrl": "orders/cart",
   "makeOrderInfoApiUrl": "orders/payment-methods",
-  "payApiUrl": "orders/payment"
+
+  "payApiUrl": "orders/payment",
+
+  "addCommentApiUrl": "games/{key}/comments",
+  "commentsByGameApiUrl": "games/{key}/comments",
+  "deleteCommentApiUrl": "games/{key}/comments/{id}",
+  "getBanDurationsApiUrl": "comments/ban/durations",
+  "banUserApiUrl": "comments/ban"
+
 }

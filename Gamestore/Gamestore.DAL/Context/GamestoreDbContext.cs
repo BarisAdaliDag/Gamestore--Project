@@ -23,6 +23,10 @@ public class GamestoreDbContext(DbContextOptions<GamestoreDbContext> options) : 
 
     public DbSet<GamePlatform> GamePlatforms { get; set; }
 
+    public DbSet<Comment> Comments { get; set; }
+
+    public DbSet<Ban> Bans { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -35,6 +39,8 @@ public class GamestoreDbContext(DbContextOptions<GamestoreDbContext> options) : 
         modelBuilder.ApplyConfiguration(new OrderGameConfiguration());
         modelBuilder.ApplyConfiguration(new GameGenreConfiguration());
         modelBuilder.ApplyConfiguration(new GamePlatformConfiguration());
+        modelBuilder.ApplyConfiguration(new CommentConfiguration());
+        modelBuilder.ApplyConfiguration(new BanConfiguration());
 
         DbSeeder.Seed(modelBuilder);
     }
