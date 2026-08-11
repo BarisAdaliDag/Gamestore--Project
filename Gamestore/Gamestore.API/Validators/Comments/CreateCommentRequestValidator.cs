@@ -17,10 +17,15 @@ public class CreateCommentRequestValidator : AbstractValidator<CreateCommentRequ
         RuleFor(x => x.ParentId)
             .NotNull()
             .WithMessage("ParentId is required when action is 'Reply' or 'Quote'.")
-            .When(x => x.Action is not null and not CommentAction.None);
+            .When(x => !string.IsNullOrWhiteSpace(x.Action) && x.Action != CommentAction.None.ToString());
 
         RuleFor(x => x.Action)
-            .IsInEnum().WithMessage("Action must be one of: None, Reply, Quote.")
-            .When(x => x.Action is not null);
+            .Must(BeValidAction).WithMessage("Action must be one of: None, Reply, Quote.")
+            .When(x => !string.IsNullOrWhiteSpace(x.Action));
+    }
+
+    private static bool BeValidAction(string? action)
+    {
+        return Enum.TryParse<CommentAction>(action, ignoreCase: true, out _);
     }
 }

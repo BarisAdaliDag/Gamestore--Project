@@ -71,9 +71,15 @@ public class VmMappingProfile : IRegister
         // Nested request -> nested DTO (pure copy)
         config.NewConfig<CommentCreateInfoRequest, CommentCreateInfoDto>();
 
-        // Boundary normalization: action may be null/missing in JSON -> None
+        // Boundary normalization: the UI sends empty strings for optional fields.
+        // Convert empty/null strings to null Guid / None enum before mapping.
         config.NewConfig<CreateCommentRequest, CreateCommentDto>()
-            .Map(dest => dest.Action, src => src.Action ?? CommentAction.None);
+            .MapWith(src => new CreateCommentDto
+            {
+                Comment = src.Comment.Adapt<CommentCreateInfoDto>(),
+                ParentId = string.IsNullOrWhiteSpace(src.ParentId) ? null : Guid.Parse(src.ParentId),
+                Action = string.IsNullOrWhiteSpace(src.Action) ? CommentAction.None : Enum.Parse<CommentAction>(src.Action),
+            });
 
         config.NewConfig<BanRequest, BanUserDto>();
 
