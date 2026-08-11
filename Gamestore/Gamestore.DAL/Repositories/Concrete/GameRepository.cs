@@ -7,6 +7,11 @@ namespace Gamestore.DAL.Repositories.Concrete;
 
 public class GameRepository(GamestoreDbContext context) : Repository<Game>(context), IGameRepository
 {
+    public IQueryable<Game> Query()
+    {
+        return DbSet.AsNoTracking();
+    }
+
     public async Task<Game?> GetByKeyAsync(string key)
     {
         return await DbSet.FirstOrDefaultAsync(g => g.Key == key);
