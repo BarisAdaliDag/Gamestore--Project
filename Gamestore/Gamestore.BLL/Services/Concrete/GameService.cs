@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Gamestore.BLL.Constants;
 using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Exceptions;
@@ -8,6 +9,7 @@ using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -58,6 +60,107 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
             PageSize = filter.Size,
             TotalCount = totalCount,
         };
+    }
+
+    public async Task<PagedGamesDto> GetGamesAsync(GameQueryParams parameters)
+    {
+        var p = parameters;
+        _logger.LogInformation("Getting games with filters (page {Page}, size {PageCount})", p.Page, p.PageCount);
+
+        // Query starts - NOT sent to the database yet
+        var query = UnitOfWork.Games.Query();
+
+        // ================= 1) FILTER =================
+        var genreIds = p.Genres;
+        if (genreIds?.Count > 0)
+        {
+            query = query.Where(g => g.GameGenres.Any(gg => genreIds.Contains(gg.GenreId)));
+        }
+
+        var platformIds = p.Platforms;
+        if (platformIds?.Count > 0)
+        {
+            query = query.Where(g => g.GamePlatforms.Any(gp => platformIds.Contains(gp.PlatformId)));
+        }
+
+        var publisherIds = p.Publishers;
+        if (publisherIds?.Count > 0)
+        {
+            query = query.Where(g => publisherIds.Contains(g.PublisherId));
+        }
+
+        if (p.MinPrice.HasValue)
+        {
+            query = query.Where(g => g.Price >= p.MinPrice.Value);
+        }
+
+        if (p.MaxPrice.HasValue)
+        {
+            query = query.Where(g => g.Price <= p.MaxPrice.Value);
+        }
+
+        var name = p.Name?.Trim();
+        if (!string.IsNullOrEmpty(name))
+        {
+            query = query.Where(g => g.Name.Contains(name));
+        }
+
+        // TODO (Phase 2): datePublishing filter + min 3 chars rule for name
+        // ================= 2) COUNT =================
+        // After filters, before pagination
+        var totalCount = await query.CountAsync();
+
+        // ================= 3) SORT =================
+        query = ApplySorting(query, p.Sort);
+
+        // ================= 4) PAGINATE =================
+        var pageSize = ResolvePageSize(p.PageCount);   // null => "all"
+
+        var totalPages = pageSize is null
+            ? 1
+            : Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize.Value));
+
+        var currentPage = Math.Clamp(p.Page, 1, totalPages);
+
+        if (pageSize is not null)
+        {
+            query = query
+                .Skip(pageSize.Value * (currentPage - 1))
+                .Take(pageSize.Value);
+        }
+
+        // ================= 5) EXECUTE =================
+        // Now we hit the database
+        var games = await query.ToListAsync();
+
+        _logger.LogInformation(
+            "Found {Count} games (total {Total}, page {Page}/{TotalPages})",
+            games.Count,
+            totalCount,
+            currentPage,
+            totalPages);
+
+        return new PagedGamesDto
+        {
+            Games = Mapper.Map<List<GameDto>>(games),
+            TotalPages = totalPages,
+            CurrentPage = currentPage,
+        };
+    }
+
+    public Task<IEnumerable<string>> GetPaginationOptionsAsync()
+    {
+        return Task.FromResult(GameConstants.PaginationOptions.AsEnumerable());
+    }
+
+    public Task<IEnumerable<string>> GetSortingOptionsAsync()
+    {
+        return Task.FromResult(GameConstants.SortingOptions.AsEnumerable());
+    }
+
+    public Task<IEnumerable<string>> GetPublishDateOptionsAsync()
+    {
+        return Task.FromResult(GameConstants.PublishDateOptions.AsEnumerable());
     }
 
     public async Task<IEnumerable<GameDto>> GetByGenreIdAsync(Guid genreId)
@@ -278,5 +381,31 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
         }
 
         return (uniqueGenreIds, uniquePlatformIds);
+    }
+
+    private static IQueryable<Game> ApplySorting(IQueryable<Game> query, string? sort)
+    {
+        // ThenBy(Id) is REQUIRED in every branch: it stabilizes the order on ties.
+        return sort switch
+        {
+            "Most popular" => query.OrderByDescending(g => g.ViewCount).ThenBy(g => g.Id),
+            "Most commented" => query.OrderByDescending(g => g.Comments.Count(c => !c.IsDeleted)).ThenBy(g => g.Id),
+            "Price ASC" => query.OrderBy(g => g.Price).ThenBy(g => g.Id),
+            "Price DESC" => query.OrderByDescending(g => g.Price).ThenBy(g => g.Id),
+            "New" => query.OrderByDescending(g => g.CreatedAt).ThenBy(g => g.Id),
+            _ => query.OrderBy(g => g.Name).ThenBy(g => g.Id),   // default
+        };
+    }
+
+    private static int? ResolvePageSize(string? pageCount)
+    {
+        // "all" => no pagination
+        if (string.Equals(pageCount, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        // Invalid value falls back to default (no exception)
+        return int.TryParse(pageCount, out var size) && size > 0 ? size : 10;
     }
 }

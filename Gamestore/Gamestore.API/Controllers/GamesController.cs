@@ -2,7 +2,6 @@ using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Comments;
 using Gamestore.API.Models.Requests.Games;
 using Gamestore.API.Models.Responses.Comments;
-using Gamestore.API.Models.Responses.Common;
 using Gamestore.API.Models.Responses.Games;
 using Gamestore.API.Models.Responses.Genres;
 using Gamestore.API.Models.Responses.Platforms;
@@ -35,20 +34,34 @@ public class GamesController(
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
-    public async Task<ActionResult<PagedResponse<GameResponse>>> GetAll(
-        [FromQuery] GameQueryParameters queryParameters)
+    public async Task<ActionResult<PagedGamesResponse>> GetGames([FromQuery] GameQueryRequest request)
     {
-        if (!Request.Query.ContainsKey("Page") && !Request.Query.ContainsKey("Size"))
-        {
-            var legacyDtos = await _gameService.GetAllAsync();
-            return Ok(_mapper.Map<IEnumerable<GameResponse>>(legacyDtos));
-        }
+        var parameters = _mapper.Map<GameQueryParams>(request);
 
-        var filter = _mapper.Map<GameFilterDto>(queryParameters);
-        var pagedResult = await _gameService.GetFilteredAsync(filter);
-        var response = _mapper.Map<PagedResponse<GameResponse>>(pagedResult);
+        var result = await _gameService.GetGamesAsync(parameters);
 
-        return Ok(response);
+        return Ok(_mapper.Map<PagedGamesResponse>(result));
+    }
+
+    [HttpGet("pagination-options")]
+    public async Task<ActionResult<IEnumerable<string>>> GetPaginationOptions()
+    {
+        var options = await _gameService.GetPaginationOptionsAsync();
+        return Ok(options);
+    }
+
+    [HttpGet("sorting-options")]
+    public async Task<ActionResult<IEnumerable<string>>> GetSortingOptions()
+    {
+        var options = await _gameService.GetSortingOptionsAsync();
+        return Ok(options);
+    }
+
+    [HttpGet("publish-date-options")]
+    public async Task<ActionResult<IEnumerable<string>>> GetPublishDateOptions()
+    {
+        var options = await _gameService.GetPublishDateOptionsAsync();
+        return Ok(options);
     }
 
     [HttpGet("{key}")]

@@ -11,6 +11,14 @@ public interface IGameService : IService<GameDto>
 
     Task<PagedResultDto<GameDto>> GetFilteredAsync(GameFilterDto filter);
 
+    Task<PagedGamesDto> GetGamesAsync(GameQueryParams parameters);
+
+    Task<IEnumerable<string>> GetPaginationOptionsAsync();
+
+    Task<IEnumerable<string>> GetSortingOptionsAsync();
+
+    Task<IEnumerable<string>> GetPublishDateOptionsAsync();
+
     Task<IEnumerable<GameDto>> GetByGenreIdAsync(Guid genreId);
 
     Task<PagedResultDto<GameDto>> GetByGenreIdAsync(Guid genreId, PaginationParamsDto paginationParams);
