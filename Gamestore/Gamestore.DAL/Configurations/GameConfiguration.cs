@@ -34,6 +34,14 @@ public class GameConfiguration : IEntityTypeConfiguration<Game>
         builder.Property(g => g.Discount)
             .IsRequired();
 
+        builder.Property(g => g.CreatedAt)
+            .IsRequired()
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        builder.Property(g => g.ViewCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
         builder.HasOne(g => g.Publisher)
             .WithMany(p => p.Games)
             .HasForeignKey(g => g.PublisherId)

@@ -89,6 +89,11 @@ namespace Gamestore.DAL.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -114,6 +119,11 @@ namespace Gamestore.DAL.Migrations
 
                     b.Property<int>("UnitInStock")
                         .HasColumnType("int");
+
+                    b.Property<int>("ViewCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.HasKey("Id");
 
