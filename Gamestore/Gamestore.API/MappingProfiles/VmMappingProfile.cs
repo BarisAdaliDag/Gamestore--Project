@@ -33,7 +33,6 @@ public class VmMappingProfile : IRegister
         config.NewConfig<PlatformDto, PlatformResponse>();
         config.NewConfig<PublisherDto, PublisherResponse>();
         config.NewConfig<QueryParameters, PaginationParamsDto>();
-        config.NewConfig<GameQueryParameters, GameFilterDto>();
         config.NewConfig<GameQueryRequest, GameQueryParams>();
         config.NewConfig<PagedGamesDto, PagedGamesResponse>();
         config.NewConfig<PagedResultDto<GameDto>, PagedResponse<GameResponse>>();

@@ -37,31 +37,27 @@ public class GamesController(
     public async Task<ActionResult<PagedGamesResponse>> GetGames([FromQuery] GameQueryRequest request)
     {
         var parameters = _mapper.Map<GameQueryParams>(request);
-
         var result = await _gameService.GetGamesAsync(parameters);
 
         return Ok(_mapper.Map<PagedGamesResponse>(result));
     }
 
     [HttpGet("pagination-options")]
-    public async Task<ActionResult<IEnumerable<string>>> GetPaginationOptions()
+    public ActionResult<IReadOnlyList<string>> GetPaginationOptions()
     {
-        var options = await _gameService.GetPaginationOptionsAsync();
-        return Ok(options);
+        return Ok(_gameService.GetPaginationOptions());
     }
 
     [HttpGet("sorting-options")]
-    public async Task<ActionResult<IEnumerable<string>>> GetSortingOptions()
+    public ActionResult<IReadOnlyList<string>> GetSortingOptions()
     {
-        var options = await _gameService.GetSortingOptionsAsync();
-        return Ok(options);
+        return Ok(_gameService.GetSortingOptions());
     }
 
     [HttpGet("publish-date-options")]
-    public async Task<ActionResult<IEnumerable<string>>> GetPublishDateOptions()
+    public ActionResult<IReadOnlyList<string>> GetPublishDateOptions()
     {
-        var options = await _gameService.GetPublishDateOptionsAsync();
-        return Ok(options);
+        return Ok(_gameService.GetPublishDateOptions());
     }
 
     [HttpGet("{key}")]

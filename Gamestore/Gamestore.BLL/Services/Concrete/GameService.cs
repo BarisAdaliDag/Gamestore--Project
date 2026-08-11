@@ -1,9 +1,9 @@
 using System.Text;
 using System.Text.Json;
-using Gamestore.BLL.Constants;
 using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Exceptions;
+using Gamestore.BLL.Helpers;
 using Gamestore.BLL.Services.Abstract;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
@@ -42,24 +42,6 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
         var game = await UnitOfWork.Games.GetByKeyAsync(key)
             ?? throw new NotFoundException(nameof(Game), key);
         return Mapper.Map<GameDto>(game);
-    }
-
-    public async Task<PagedResultDto<GameDto>> GetFilteredAsync(GameFilterDto filter)
-    {
-        var (games, totalCount) = await UnitOfWork.Games.GetFilteredPagedAsync(
-            filter.Page,
-            filter.Size,
-            filter.Name,
-            filter.GenreId,
-            filter.PlatformId);
-
-        return new PagedResultDto<GameDto>
-        {
-            Items = Mapper.Map<IEnumerable<GameDto>>(games),
-            CurrentPage = filter.Page,
-            PageSize = filter.Size,
-            TotalCount = totalCount,
-        };
     }
 
     public async Task<PagedGamesDto> GetGamesAsync(GameQueryParams parameters)
@@ -111,10 +93,10 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
         var totalCount = await query.CountAsync();
 
         // ================= 3) SORT =================
-        query = ApplySorting(query, p.Sort);
+        query = SortingOptionsHelper.ApplySorting(query, p.Sort);
 
         // ================= 4) PAGINATE =================
-        var pageSize = ResolvePageSize(p.PageCount);   // null => "all"
+        var pageSize = PaginationOptionsHelper.ResolvePageSize(p.PageCount);   // null => "all"
 
         var totalPages = pageSize is null
             ? 1
@@ -148,19 +130,19 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
         };
     }
 
-    public Task<IEnumerable<string>> GetPaginationOptionsAsync()
+    public IReadOnlyList<string> GetPaginationOptions()
     {
-        return Task.FromResult(GameConstants.PaginationOptions.AsEnumerable());
+        return PaginationOptionsHelper.GetOptions();
     }
 
-    public Task<IEnumerable<string>> GetSortingOptionsAsync()
+    public IReadOnlyList<string> GetSortingOptions()
     {
-        return Task.FromResult(GameConstants.SortingOptions.AsEnumerable());
+        return SortingOptionsHelper.GetOptions();
     }
 
-    public Task<IEnumerable<string>> GetPublishDateOptionsAsync()
+    public IReadOnlyList<string> GetPublishDateOptions()
     {
-        return Task.FromResult(GameConstants.PublishDateOptions.AsEnumerable());
+        return PublishDateOptionsHelper.GetOptions();
     }
 
     public async Task<IEnumerable<GameDto>> GetByGenreIdAsync(Guid genreId)
@@ -381,31 +363,5 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
         }
 
         return (uniqueGenreIds, uniquePlatformIds);
-    }
-
-    private static IQueryable<Game> ApplySorting(IQueryable<Game> query, string? sort)
-    {
-        // ThenBy(Id) is REQUIRED in every branch: it stabilizes the order on ties.
-        return sort switch
-        {
-            "Most popular" => query.OrderByDescending(g => g.ViewCount).ThenBy(g => g.Id),
-            "Most commented" => query.OrderByDescending(g => g.Comments.Count(c => !c.IsDeleted)).ThenBy(g => g.Id),
-            "Price ASC" => query.OrderBy(g => g.Price).ThenBy(g => g.Id),
-            "Price DESC" => query.OrderByDescending(g => g.Price).ThenBy(g => g.Id),
-            "New" => query.OrderByDescending(g => g.CreatedAt).ThenBy(g => g.Id),
-            _ => query.OrderBy(g => g.Name).ThenBy(g => g.Id),   // default
-        };
-    }
-
-    private static int? ResolvePageSize(string? pageCount)
-    {
-        // "all" => no pagination
-        if (string.Equals(pageCount, "all", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        // Invalid value falls back to default (no exception)
-        return int.TryParse(pageCount, out var size) && size > 0 ? size : 10;
     }
 }
