@@ -11,6 +11,7 @@
   "gamesByGenreApiUrl": "genres/{id}/games",
   "gamesByPublisherApiUrl": "publishers/{companyname}/games",
   "gamesByPlatformApiUrl": "platforms/{id}/games",
+  "getGameFile": "games/{key}/file",
   "updateGameApiUrl": "games",
   "addGameApiUrl": "games",
   "deleteGameApiUrl": "games/{key}",

@@ -4044,7 +4044,6 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-
 class GamesPageComponent extends src_app_componetns_base_component__WEBPACK_IMPORTED_MODULE_0__.BaseComponent {
     constructor(gameService) {
         super();
