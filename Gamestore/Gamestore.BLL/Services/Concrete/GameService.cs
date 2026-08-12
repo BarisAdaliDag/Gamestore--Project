@@ -1,22 +1,25 @@
 using System.Text;
 using System.Text.Json;
-using Gamestore.BLL.Constants;
 using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Exceptions;
+using Gamestore.BLL.Filtering;
 using Gamestore.BLL.Helpers;
 using Gamestore.BLL.Services.Abstract;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Gamestore.BLL.Services.Concrete;
 
-public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameService> logger)
+public class GameService(
+    IUnitOfWork unitOfWork,
+    IMapper mapper,
+    GameQueryPipeline pipeline,
+    ILogger<GameService> logger)
     : BaseService<GameDto, Game>(unitOfWork, mapper), IGameService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -26,8 +29,8 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
 
     private readonly ILogger<GameService> _logger = logger;
 
-    public GameService(IUnitOfWork unitOfWork, IMapper mapper)
-        : this(unitOfWork, mapper, NullLogger<GameService>.Instance)
+    public GameService(IUnitOfWork unitOfWork, IMapper mapper, GameQueryPipeline pipeline)
+        : this(unitOfWork, mapper, pipeline, NullLogger<GameService>.Instance)
     {
     }
 
@@ -52,92 +55,22 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
 
     public async Task<PagedGamesDto> GetGamesAsync(GameQueryParams parameters)
     {
-        var p = parameters;
-        _logger.LogInformation("Getting games with filters (page {Page}, size {PageCount})", p.Page, p.PageCount);
+        _logger.LogInformation(
+            "Getting games (page {Page}, size {PageCount})", parameters.Page, parameters.PageCount);
 
-        // Query starts - NOT sent to the database yet
-        var query = UnitOfWork.Games.Query();
-
-        // ================= 1) FILTER =================
-        var genreIds = p.Genres;
-        if (genreIds?.Count > 0)
-        {
-            query = query.Where(g => g.GameGenres.Any(gg => genreIds.Contains(gg.GenreId)));
-        }
-
-        var platformIds = p.Platforms;
-        if (platformIds?.Count > 0)
-        {
-            query = query.Where(g => g.GamePlatforms.Any(gp => platformIds.Contains(gp.PlatformId)));
-        }
-
-        var publisherIds = p.Publishers;
-        if (publisherIds?.Count > 0)
-        {
-            query = query.Where(g => publisherIds.Contains(g.PublisherId));
-        }
-
-        if (p.MinPrice.HasValue)
-        {
-            query = query.Where(g => g.Price >= p.MinPrice.Value);
-        }
-
-        if (p.MaxPrice.HasValue)
-        {
-            query = query.Where(g => g.Price <= p.MaxPrice.Value);
-        }
-
-        var name = p.Name?.Trim();
-        if (!string.IsNullOrEmpty(name) && name.Length >= GameConstants.MinNameFilterLength)
-        {
-            query = query.Where(g => g.Name.Contains(name));
-        }
-
-        var publishCutoff = PublishDateOptionsHelper.ResolveCutoff(p.DatePublishing, DateTime.UtcNow);
-        if (publishCutoff.HasValue)
-        {
-            query = query.Where(g => g.CreatedAt >= publishCutoff.Value);
-        }
-
-        // ================= 2) COUNT =================
-        // After filters, before pagination
-        var totalCount = await query.CountAsync();
-
-        // ================= 3) SORT =================
-        query = SortingOptionsHelper.ApplySorting(query, p.Sort);
-
-        // ================= 4) PAGINATE =================
-        var pageSize = PaginationOptionsHelper.ResolvePageSize(p.PageCount);   // null => "all"
-
-        var totalPages = pageSize is null
-            ? 1
-            : Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize.Value));
-
-        var currentPage = Math.Clamp(p.Page, 1, totalPages);
-
-        if (pageSize is not null)
-        {
-            query = query
-                .Skip(pageSize.Value * (currentPage - 1))
-                .Take(pageSize.Value);
-        }
-
-        // ================= 5) EXECUTE =================
-        // Now we hit the database
-        var games = await query.ToListAsync();
+        var result = await pipeline.ExecuteAsync(UnitOfWork.Games.Query(), parameters);
 
         _logger.LogInformation(
-            "Found {Count} games (total {Total}, page {Page}/{TotalPages})",
-            games.Count,
-            totalCount,
-            currentPage,
-            totalPages);
+            "Found {Count} games (page {Page}/{TotalPages})",
+            result.Games.Count,
+            result.CurrentPage,
+            result.TotalPages);
 
         return new PagedGamesDto
         {
-            Games = Mapper.Map<List<GameDto>>(games),
-            TotalPages = totalPages,
-            CurrentPage = currentPage,
+            Games = Mapper.Map<List<GameDto>>(result.Games),
+            TotalPages = result.TotalPages,
+            CurrentPage = result.CurrentPage,
         };
     }
 

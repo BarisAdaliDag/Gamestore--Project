@@ -1,3 +1,6 @@
+using Gamestore.BLL.Filtering;
+using Gamestore.BLL.Filtering.Abstract;
+using Gamestore.BLL.Filtering.Filters;
 using Gamestore.BLL.Services.Abstract;
 using Gamestore.BLL.Services.Concrete;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +18,19 @@ public static class ServiceResolver
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<ICommentService, CommentService>();
+
+        // Time abstraction (for PublishDateFilter)
+        services.AddSingleton(TimeProvider.System);
+
+        // Pipeline filters - REGISTRATION ORDER = EXECUTION ORDER
+        services.AddScoped<IGameFilter, GenreFilter>();
+        services.AddScoped<IGameFilter, PlatformFilter>();
+        services.AddScoped<IGameFilter, PublisherFilter>();
+        services.AddScoped<IGameFilter, PriceRangeFilter>();
+        services.AddScoped<IGameFilter, PublishDateFilter>();
+        services.AddScoped<IGameFilter, NameFilter>();
+
+        services.AddScoped<GameQueryPipeline>();
 
         return services;
     }

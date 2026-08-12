@@ -5,8 +5,8 @@ namespace Gamestore.DAL.Repositories.Abstract;
 public interface IGameRepository : IRepository<Game>
 {
     /// <summary>
-    /// Base query for filtering/sorting/pagination.
-    /// Does not hit the database yet — further modifications can be applied to the query
+    /// Filtreleme/siralama/sayfalama icin temel sorgu.
+    /// Henuz veritabanina gidilmez - sorgu ustune eklemeler yapilabilir.
     /// </summary>
     IQueryable<Game> Query();
 

@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Exceptions;
+using Gamestore.BLL.Filtering;
 using Gamestore.BLL.Services.Concrete;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
@@ -12,6 +13,8 @@ namespace Gamestore.Tests.Services;
 
 public class GameServiceTests
 {
+    private static readonly GameQueryPipeline EmptyPipeline = new([]);
+
     [Fact]
     public async Task GetTotalCountAsyncShouldReturnCountFromRepository()
     {
@@ -24,7 +27,7 @@ public class GameServiceTests
             .Returns(mockGameRepository.Object);
 
         var mockMapper = new Mock<IMapper>();
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         var result = await service.GetTotalCountAsync();
 
@@ -52,7 +55,7 @@ public class GameServiceTests
         mockMapper.Setup(mapper => mapper.Map<GameDto>(game))
             .Returns(gameDto);
 
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         var result = await service.GetByKeyAsync(key);
 
@@ -78,7 +81,7 @@ public class GameServiceTests
             .Returns(mockGameRepository.Object);
 
         var mockMapper = new Mock<IMapper>();
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         await Assert.ThrowsAsync<NotFoundException>(() => service.GetByKeyAsync(key));
 
@@ -101,7 +104,7 @@ public class GameServiceTests
             .Returns(mockGameRepository.Object);
 
         var mockMapper = new Mock<IMapper>();
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         await Assert.ThrowsAsync<NotFoundException>(() => service.GetByKeyAsync(key));
     }
@@ -130,7 +133,7 @@ public class GameServiceTests
         var mockMapper = new Mock<IMapper>();
         mockMapper.Setup(mapper => mapper.Map<IEnumerable<GameDto>>(games))
             .Returns(gameDtos);
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         var result = await service.GetByPublisherNameAsync(CompanyName);
 
@@ -197,7 +200,7 @@ public class GameServiceTests
         mockMapper.Setup(mapper => mapper.Map<GameDto>(It.IsAny<Game>()))
             .Returns(new GameDto { Name = "New Game", Key = "new-game" });
 
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         var result = await service.CreateAsync(dto);
 
@@ -242,7 +245,7 @@ public class GameServiceTests
         mockUnitOfWork.Setup(unitOfWork => unitOfWork.Genres).Returns(mockGenreRepository.Object);
         mockUnitOfWork.Setup(unitOfWork => unitOfWork.Platforms).Returns(mockPlatformRepository.Object);
         mockUnitOfWork.Setup(unitOfWork => unitOfWork.Publishers).Returns(mockPublisherRepository.Object);
-        var service = new GameService(mockUnitOfWork.Object, Mock.Of<IMapper>());
+        var service = new GameService(mockUnitOfWork.Object, Mock.Of<IMapper>(), EmptyPipeline);
 
         await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(dto));
 
@@ -296,7 +299,7 @@ public class GameServiceTests
         var mockMapper = new Mock<IMapper>();
         mockMapper.Setup(mapper => mapper.Map<GameDto>(game))
             .Returns(new GameDto { Id = gameId, Name = dto.Game.Name, Key = dto.Game.Key });
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         await service.UpdateAsync(dto);
 
@@ -329,7 +332,7 @@ public class GameServiceTests
             .Returns(mockGameRepository.Object);
 
         var mockMapper = new Mock<IMapper>();
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         await Assert.ThrowsAsync<EntityAlreadyExistsException>(() => service.CreateAsync(dto));
 
@@ -364,7 +367,7 @@ public class GameServiceTests
         mockMapper.Setup(mapper => mapper.Map<IEnumerable<GameDto>>(games))
             .Returns(gameDtos);
 
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         var result = await service.GetByGenreIdAsync(genreId);
 
@@ -396,7 +399,7 @@ public class GameServiceTests
             .ReturnsAsync(1);
 
         var mockMapper = new Mock<IMapper>();
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         await service.DeleteByKeyAsync(key);
 
@@ -418,7 +421,7 @@ public class GameServiceTests
             .Returns(mockGameRepository.Object);
 
         var mockMapper = new Mock<IMapper>();
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         await Assert.ThrowsAsync<NotFoundException>(() => service.DeleteByKeyAsync(key));
 
@@ -444,7 +447,7 @@ public class GameServiceTests
         mockMapper.Setup(mapper => mapper.Map<GameDto>(game))
             .Returns(gameDto);
 
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         var (fileBytes, fileName) = await service.GenerateGameFileAsync(key);
 
@@ -467,7 +470,7 @@ public class GameServiceTests
             .Returns(mockGameRepository.Object);
 
         var mockMapper = new Mock<IMapper>();
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         await Assert.ThrowsAsync<NotFoundException>(() => service.GenerateGameFileAsync(key));
     }
@@ -495,7 +498,7 @@ public class GameServiceTests
             .Returns(mockOrderGameRepository.Object);
 
         var mockMapper = new Mock<IMapper>();
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         await Assert.ThrowsAsync<EntityInUseException>(() => service.DeleteByKeyAsync(key));
 
@@ -528,7 +531,7 @@ public class GameServiceTests
             .ReturnsAsync(1);
 
         var mockMapper = new Mock<IMapper>();
-        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object, EmptyPipeline);
 
         await service.DeleteByKeyAsync(key);
 
