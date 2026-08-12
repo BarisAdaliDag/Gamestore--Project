@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Gamestore.BLL.Constants;
 using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Exceptions;
@@ -41,6 +42,11 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
     {
         var game = await UnitOfWork.Games.GetByKeyAsync(key)
             ?? throw new NotFoundException(nameof(Game), key);
+
+        // Atomically increment the view count on the GET /games/{key} endpoint.
+        // On 404 (game not found) the counter is not incremented — correct behavior.
+        await UnitOfWork.Games.IncrementViewCountAsync(game.Id);
+
         return Mapper.Map<GameDto>(game);
     }
 
@@ -82,12 +88,17 @@ public class GameService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GameSer
         }
 
         var name = p.Name?.Trim();
-        if (!string.IsNullOrEmpty(name))
+        if (!string.IsNullOrEmpty(name) && name.Length >= GameConstants.MinNameFilterLength)
         {
             query = query.Where(g => g.Name.Contains(name));
         }
 
-        // TODO (Phase 2): datePublishing filter + min 3 chars rule for name
+        var publishCutoff = PublishDateOptionsHelper.ResolveCutoff(p.DatePublishing, DateTime.UtcNow);
+        if (publishCutoff.HasValue)
+        {
+            query = query.Where(g => g.CreatedAt >= publishCutoff.Value);
+        }
+
         // ================= 2) COUNT =================
         // After filters, before pagination
         var totalCount = await query.CountAsync();

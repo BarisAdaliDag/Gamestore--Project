@@ -41,6 +41,8 @@ public class GameServiceTests
         var mockGameRepository = new Mock<IGameRepository>();
         mockGameRepository.Setup(repository => repository.GetByKeyAsync(key))
             .ReturnsAsync(game);
+        mockGameRepository.Setup(repository => repository.IncrementViewCountAsync(game.Id))
+            .Returns(Task.CompletedTask);
 
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
@@ -57,6 +59,32 @@ public class GameServiceTests
         Assert.NotNull(result);
         Assert.Equal(key, result.Key);
         Assert.Equal("Halo", result.Name);
+        mockGameRepository.Verify(
+            repository => repository.IncrementViewCountAsync(game.Id),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetByKeyAsyncShouldNotIncrementViewCountWhenGameDoesNotExist()
+    {
+        var key = "non-existing-game";
+
+        var mockGameRepository = new Mock<IGameRepository>();
+        mockGameRepository.Setup(repository => repository.GetByKeyAsync(key))
+            .ReturnsAsync((Game?)null);
+
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        mockUnitOfWork.Setup(unitOfWork => unitOfWork.Games)
+            .Returns(mockGameRepository.Object);
+
+        var mockMapper = new Mock<IMapper>();
+        var service = new GameService(mockUnitOfWork.Object, mockMapper.Object);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.GetByKeyAsync(key));
+
+        mockGameRepository.Verify(
+            repository => repository.IncrementViewCountAsync(It.IsAny<Guid>()),
+            Times.Never);
     }
 
     [Fact]

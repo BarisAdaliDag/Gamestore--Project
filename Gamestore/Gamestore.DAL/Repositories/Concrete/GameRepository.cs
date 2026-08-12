@@ -17,6 +17,15 @@ public class GameRepository(GamestoreDbContext context) : Repository<Game>(conte
         return await DbSet.FirstOrDefaultAsync(g => g.Key == key);
     }
 
+    public Task IncrementViewCountAsync(Guid gameId)
+    {
+        // Atomic increment: SQL "SET ViewCount = ViewCount + 1"
+        // We are NOT doing a read-modify-write → no lost updates under concurrent requests.
+        return DbSet
+            .Where(g => g.Id == gameId)
+            .ExecuteUpdateAsync(s => s.SetProperty(g => g.ViewCount, g => g.ViewCount + 1));
+    }
+
     public async Task<Game?> GetByIdWithDetailsAsync(Guid id)
     {
         return await DbSet

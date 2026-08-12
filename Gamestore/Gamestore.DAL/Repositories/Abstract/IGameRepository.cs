@@ -5,12 +5,14 @@ namespace Gamestore.DAL.Repositories.Abstract;
 public interface IGameRepository : IRepository<Game>
 {
     /// <summary>
-    /// Filtreleme/siralama/sayfalama icin temel sorgu.
-    /// Henuz veritabanina gidilmez - sorgu ustune eklemeler yapilabilir.
+    /// Base query for filtering/sorting/pagination.
+    /// Does not hit the database yet — further modifications can be applied to the query
     /// </summary>
     IQueryable<Game> Query();
 
     Task<Game?> GetByKeyAsync(string key);
+
+    Task IncrementViewCountAsync(Guid gameId);
 
     Task<Game?> GetByIdWithDetailsAsync(Guid id);
 
