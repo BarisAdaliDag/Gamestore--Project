@@ -8,11 +8,13 @@ public static class PaginationOptionsHelper
 
     public static IReadOnlyList<string> GetOptions() => Options;
 
-    /// <summary>Sayfa boyutunu cozer. null => sayfalama yok ("all").</summary>
+    /// <summary>Resolves the page size. null => no pagination ("all").</summary>
     public static int? ResolvePageSize(string? pageCount)
     {
         return string.Equals(pageCount, All, StringComparison.OrdinalIgnoreCase)
             ? null
-            : int.TryParse(pageCount, out var size) && size > 0 ? size : 10;
+            : Resolve();
+
+        int Resolve() => int.TryParse(pageCount, out var size) && size > 0 ? size : 10;
     }
 }

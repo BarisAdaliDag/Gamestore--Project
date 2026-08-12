@@ -4,7 +4,7 @@ namespace Gamestore.BLL.Helpers;
 
 public static class SortingOptionsHelper
 {
-    // Sira ONEMLI: US2 bu sirayla dondurur.
+    // ORDER MATTERS: US2 returns them in this order.
     private static readonly (string Name, Func<IQueryable<Game>, IQueryable<Game>> Apply)[] Sorters =
     [
         ("Most popular",   q => q.OrderByDescending(g => g.ViewCount).ThenBy(g => g.Id)),
@@ -28,7 +28,7 @@ public static class SortingOptionsHelper
             }
         }
 
-        // Varsayilan: sayfalama icin siralama ZORUNLU
+        // Default: Sorting is REQUIRED for pagination.
         return query.OrderBy(g => g.Name).ThenBy(g => g.Id);
     }
 }

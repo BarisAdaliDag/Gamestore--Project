@@ -2,7 +2,7 @@ namespace Gamestore.BLL.Helpers;
 
 public static class PublishDateOptionsHelper
 {
-    // Sira ONEMLI: US3 bu sirayla dondurur.
+    // ORDER MATTERS: US3 returns them in this order.
     private static readonly (string Name, Func<DateTime, DateTime> Cutoff)[] Options =
     [
         ("last week",  now => now.AddDays(-7)),
@@ -16,7 +16,7 @@ public static class PublishDateOptionsHelper
 
     public static IReadOnlyList<string> GetOptions() => Names;
 
-    /// <summary>Esik tarihi doner. Bilinmeyen deger => null (filtre uygulanmaz).</summary>
+    /// <summary>Returns the threshold date. Unknown value => null (no filter is applied).</summary>
     public static DateTime? ResolveCutoff(string? option, DateTime from)
     {
         foreach (var (name, cutoff) in Options)
