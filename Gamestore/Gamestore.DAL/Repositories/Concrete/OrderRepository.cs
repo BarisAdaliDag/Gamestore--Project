@@ -28,6 +28,7 @@ public class OrderRepository(GamestoreDbContext context)
     {
         return await DbSet
             .Where(o => statuses.Contains(o.Status))
+            .OrderByDescending(o => o.Date)
             .ToListAsync();
     }
 }
