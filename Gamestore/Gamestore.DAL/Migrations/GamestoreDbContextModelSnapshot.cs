@@ -58,6 +58,11 @@ namespace Gamestore.DAL.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
                     b.Property<Guid>("GameId")
                         .HasColumnType("uniqueidentifier");
 
@@ -76,9 +81,9 @@ namespace Gamestore.DAL.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GameId");
-
                     b.HasIndex("ParentCommentId");
+
+                    b.HasIndex("GameId", "CreatedAt");
 
                     b.ToTable("Comments", (string)null);
                 });

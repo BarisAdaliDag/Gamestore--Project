@@ -14,6 +14,8 @@ public class Comment
 
     public CommentAction Action { get; set; } = CommentAction.None;
 
+    public DateTime CreatedAt { get; set; }
+
     public Guid GameId { get; set; }
 
     public Game? Game { get; set; }

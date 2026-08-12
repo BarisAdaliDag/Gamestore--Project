@@ -13,6 +13,8 @@ public class CommentRepository(GamestoreDbContext context)
         return await DbSet
             .AsNoTracking()
             .Where(c => c.GameId == gameId)
+            .OrderByDescending(c => c.CreatedAt)
+            .ThenBy(c => c.Id)
             .ToListAsync();
     }
 }

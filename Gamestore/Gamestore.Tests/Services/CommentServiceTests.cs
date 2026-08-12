@@ -190,6 +190,7 @@ public class CommentServiceTests
         Assert.Equal("Hello", addedComment.Body);
         Assert.Equal(game.Id, addedComment.GameId);
         Assert.False(addedComment.IsDeleted);
+        Assert.NotEqual(default, addedComment.CreatedAt);
         _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
@@ -269,6 +270,36 @@ public class CommentServiceTests
         var child = root.ChildComments.First();
         Assert.Equal("Veli", child.Name);
         Assert.Equal("[Ali], Katiliyorum", child.Body);
+    }
+
+    [Fact]
+    public async Task GetByGameKeyAsyncShouldPreserveRepoOrderingInChildList()
+    {
+        var game = new Game { Id = Guid.NewGuid(), Name = "Test", Key = "test" };
+        var rootId = Guid.NewGuid();
+        var olderChildId = Guid.NewGuid();
+        var newerChildId = Guid.NewGuid();
+
+        // Repository returns the flat list already ordered by CreatedAt DESC (then Id).
+        // BuildTree must preserve that order when attaching children.
+        var comments = new List<Comment>
+        {
+            new() { Id = rootId, Name = "Ali", Body = "Harika", GameId = game.Id, ParentCommentId = null, Action = CommentAction.None, IsDeleted = false, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new() { Id = newerChildId, Name = "Ayse", Body = "Son", GameId = game.Id, ParentCommentId = rootId, Action = CommentAction.Reply, IsDeleted = false, CreatedAt = new DateTime(2024, 1, 3, 0, 0, 0, DateTimeKind.Utc) },
+            new() { Id = olderChildId, Name = "Veli", Body = "Ilk", GameId = game.Id, ParentCommentId = rootId, Action = CommentAction.Reply, IsDeleted = false, CreatedAt = new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Utc) },
+        };
+
+        _mockGameRepository.Setup(r => r.GetByKeyAsync("test")).ReturnsAsync(game);
+        _mockCommentRepository.Setup(r => r.GetByGameIdAsync(game.Id))
+            .ReturnsAsync(comments);
+
+        var result = (await _service.GetByGameKeyAsync("test")).ToList();
+
+        Assert.Single(result);
+        var childComments = result[0].ChildComments.ToList();
+        Assert.Equal(2, childComments.Count);
+        Assert.Equal("Ayse", childComments[0].Name);
+        Assert.Equal("Veli", childComments[1].Name);
     }
 
     [Fact]

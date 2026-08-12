@@ -16,6 +16,12 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
         builder.Property(c => c.IsDeleted).IsRequired().HasDefaultValue(false);
         builder.Property(c => c.Action).IsRequired().HasConversion<int>();
 
+        builder.Property(c => c.CreatedAt)
+            .IsRequired()
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        builder.HasIndex(c => new { c.GameId, c.CreatedAt });
+
         builder.HasOne(c => c.Game)
             .WithMany(g => g.Comments)
             .HasForeignKey(c => c.GameId)

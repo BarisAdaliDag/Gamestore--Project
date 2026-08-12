@@ -55,6 +55,7 @@ public class CommentService(
             ParentCommentId = dto.ParentId,
             Action = dto.Action,
             IsDeleted = false,
+            CreatedAt = DateTime.UtcNow,
         };
 
         await _unitOfWork.Comments.AddAsync(comment);
