@@ -1,6 +1,8 @@
 using Gamestore.BLL.DTOs.Genres;
 using Gamestore.BLL.Exceptions;
+using Gamestore.BLL.Helpers;
 using Gamestore.BLL.Services.Abstract;
+using Gamestore.DAL.Mongo.Repositories.Abstract;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Entities;
@@ -10,10 +12,17 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Gamestore.BLL.Services.Concrete;
 
-public class GenreService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GenreService> logger)
+public class GenreService(
+    IUnitOfWork unitOfWork,
+    IMapper mapper,
+    ILogger<GenreService> logger,
+    INorthwindCategoryRepository? categoryRepository = null,
+    IGameMaterializationService? gameMaterializationService = null)
     : BaseService<GenreDto, Genre>(unitOfWork, mapper), IGenreService
 {
     private readonly ILogger<GenreService> _logger = logger;
+    private readonly INorthwindCategoryRepository? _categoryRepository = categoryRepository;
+    private readonly IGameMaterializationService? _gameMaterializationService = gameMaterializationService;
 
     public GenreService(IUnitOfWork unitOfWork, IMapper mapper)
         : this(unitOfWork, mapper, NullLogger<GenreService>.Instance)
@@ -21,6 +30,15 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GenreS
     }
 
     protected override IRepository<Genre> Repository => UnitOfWork.Genres;
+
+    public override async Task<GenreDto> GetByIdAsync(Guid id)
+    {
+        var genre = await UnitOfWork.Genres.GetByIdAsync(id)
+            ?? await MaterializeNorthwindCategoryByIdAsync(id)
+            ?? throw new NotFoundException(nameof(Genre), id);
+
+        return Mapper.Map<GenreDto>(genre);
+    }
 
     public async Task<IEnumerable<GenreDto>> GetByParentIdAsync(Guid parentId)
     {
@@ -31,6 +49,12 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GenreS
     public async Task<IEnumerable<GenreDto>> GetByGameKeyAsync(string gameKey)
     {
         var genres = await UnitOfWork.Genres.GetByGameKeyAsync(gameKey);
+        if (!genres.Any() && _gameMaterializationService != null)
+        {
+            await _gameMaterializationService.GetOrCreateAsync(gameKey);
+            genres = await UnitOfWork.Genres.GetByGameKeyAsync(gameKey);
+        }
+
         return Mapper.Map<IEnumerable<GenreDto>>(genres);
     }
 
@@ -64,6 +88,7 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GenreS
     public override async Task DeleteAsync(Guid id)
     {
         var genre = await UnitOfWork.Genres.GetByIdAsync(id)
+            ?? await MaterializeNorthwindCategoryByIdAsync(id)
             ?? throw new NotFoundException(nameof(Genre), id);
 
         var hasSubGenres = (await UnitOfWork.Genres
@@ -82,6 +107,7 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GenreS
         _logger.LogInformation("Updating genre: {Id}", dto.Genre.Id);
 
         var genre = await UnitOfWork.Genres.GetByIdAsync(dto.Genre.Id)
+            ?? await MaterializeNorthwindCategoryByIdAsync(dto.Genre.Id)
             ?? throw new NotFoundException(nameof(Genre), dto.Genre.Id);
 
         var existing = await UnitOfWork.Genres.GetSingleAsync(
@@ -126,5 +152,36 @@ public class GenreService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<GenreS
 
             currentParentId = parentGenre.ParentGenreId;
         }
+    }
+
+    private async Task<Genre?> MaterializeNorthwindCategoryByIdAsync(Guid id)
+    {
+        var category = _categoryRepository?
+            .Query()
+            .ToList()
+            .Where(item => !string.IsNullOrWhiteSpace(item.CategoryName))
+            .FirstOrDefault(item => NorthwindReferenceIdentity.CreateCategoryId(item.CategoryName!) == id);
+
+        if (category == null)
+        {
+            return null;
+        }
+
+        var existing = await UnitOfWork.Genres.GetSingleAsync(
+            genre => genre.Name == category.CategoryName);
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        var genre = new Genre
+        {
+            Id = NorthwindReferenceIdentity.CreateCategoryId(category.CategoryName!),
+            Name = category.CategoryName!,
+        };
+
+        await UnitOfWork.Genres.AddAsync(genre);
+        await UnitOfWork.SaveChangesAsync();
+        return genre;
     }
 }
