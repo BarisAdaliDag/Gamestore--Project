@@ -12,11 +12,13 @@ namespace Gamestore.BLL.Services.Concrete;
 
 public class CommentService(
     IUnitOfWork unitOfWork,
-    ILogger<CommentService> logger)
+    ILogger<CommentService> logger,
+    IGameMaterializationService? gameMaterializationService = null)
     : ICommentService
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly ILogger<CommentService> _logger = logger;
+    private readonly IGameMaterializationService? _gameMaterializationService = gameMaterializationService;
 
     public async Task AddAsync(string gameKey, CreateCommentDto dto)
     {
@@ -28,7 +30,7 @@ public class CommentService(
             dto.ParentId);
 
         // 1) Does the resource exist? -> 404
-        var game = await _unitOfWork.Games.GetByKeyAsync(gameKey)
+        var game = await GetGameAsync(gameKey)
             ?? throw new NotFoundException(nameof(Game), gameKey);
 
         var authorName = dto.Comment.Name.Trim();
@@ -69,7 +71,7 @@ public class CommentService(
     {
         _logger.LogInformation("Getting comments for game '{GameKey}'", gameKey);
 
-        var game = await _unitOfWork.Games.GetByKeyAsync(gameKey)
+        var game = await GetGameAsync(gameKey)
             ?? throw new NotFoundException(nameof(Game), gameKey);
 
         var comments = (await _unitOfWork.Comments.GetByGameIdAsync(game.Id)).ToList();
@@ -92,7 +94,7 @@ public class CommentService(
             commentId,
             gameKey);
 
-        var game = await _unitOfWork.Games.GetByKeyAsync(gameKey)
+        var game = await GetGameAsync(gameKey)
             ?? throw new NotFoundException(nameof(Game), gameKey);
 
         // IMPORTANT: GetByIdAsync (FindAsync) returns a TRACKED entity.
@@ -308,6 +310,13 @@ public class CommentService(
             ban.BannedUntil?.ToString("u") ?? "permanent");
 
         throw new ForbiddenException($"User '{authorName}' is banned from commenting.");
+    }
+
+    private Task<Game?> GetGameAsync(string gameKey)
+    {
+        return _gameMaterializationService is null
+            ? _unitOfWork.Games.GetByKeyAsync(gameKey)
+            : _gameMaterializationService.GetOrCreateAsync(gameKey);
     }
 
     private async Task ValidateParentAsync(Guid? parentId, Guid gameId)

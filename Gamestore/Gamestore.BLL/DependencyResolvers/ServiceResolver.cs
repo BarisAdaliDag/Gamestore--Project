@@ -14,6 +14,7 @@ public static class ServiceResolver
         services.AddScoped<IGameService, GameService>();
         services.AddScoped<IUnifiedGameCatalogService, UnifiedGameCatalogService>();
         services.AddScoped<IUnifiedReferenceService, UnifiedReferenceService>();
+        services.AddScoped<IGameMaterializationService, GameMaterializationService>();
         services.AddScoped<INorthwindProductService, NorthwindProductService>();
         services.AddScoped<IGenreService, GenreService>();
         services.AddScoped<IPlatformService, PlatformService>();
