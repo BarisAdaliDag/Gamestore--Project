@@ -111,8 +111,8 @@ public class GameService(
             .Select(game => game.Key)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        result.AddRange(_northwindProductService
-            .GetAllWithReferences()
+        result.AddRange((await _northwindProductService
+            .GetAllWithReferencesAsync())
             .Where(item => IsGenreMatch(item.CategoryName, genre?.Name, genreId))
             .Where(item => sqlNames.Add(NormalizeName(item.Game.Name)))
             .Where(item => sqlKeys.Add(item.Game.Key))
@@ -180,8 +180,8 @@ public class GameService(
             .Select(game => game.Key)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        result.AddRange(_northwindProductService
-            .GetAllWithReferences()
+        result.AddRange((await _northwindProductService
+            .GetAllWithReferencesAsync())
             .Where(item => string.Equals(
                 NormalizeName(item.SupplierName),
                 NormalizeName(companyName),

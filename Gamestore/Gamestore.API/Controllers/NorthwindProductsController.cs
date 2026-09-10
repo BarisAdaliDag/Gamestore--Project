@@ -12,9 +12,9 @@ public class NorthwindProductsController(
     IMapper mapper) : ControllerBase
 {
     [HttpGet]
-    public ActionResult<IEnumerable<GameResponse>> GetAll()
+    public async Task<ActionResult<IEnumerable<GameResponse>>> GetAll()
     {
-        var games = northwindProductService.GetAll();
+        var games = await northwindProductService.GetAllAsync();
         return Ok(mapper.Map<IEnumerable<GameResponse>>(games));
     }
 }

@@ -17,6 +17,51 @@ public sealed class NorthwindProductRepository(IMongoDbContext mongoDbContext)
             .AsQueryable();
     }
 
+    public async Task<NorthwindProductDocument?> EnsureGameKeyAsync(
+        ObjectId productId,
+        string gameKey)
+    {
+        var collection = mongoDbContext.Database
+            .GetCollection<NorthwindProductDocument>(NorthwindCollectionNames.Products);
+        var filterBuilder = Builders<NorthwindProductDocument>.Filter;
+        var filter = filterBuilder.And(
+            filterBuilder.Eq(product => product.Id, productId),
+            filterBuilder.Or(
+                filterBuilder.Exists(nameof(NorthwindProductDocument.GameKey), false),
+                filterBuilder.Eq(product => product.GameKey, null),
+                filterBuilder.Eq(product => product.GameKey, string.Empty)));
+        var update = Builders<NorthwindProductDocument>.Update.Set(
+            product => product.GameKey,
+            gameKey);
+
+        var oldProduct = await collection.FindOneAndUpdateAsync(
+            filter,
+            update,
+            new FindOneAndUpdateOptions<NorthwindProductDocument>
+            {
+                ReturnDocument = ReturnDocument.Before,
+            });
+
+        if (oldProduct is not null)
+        {
+            var oldVersion = oldProduct.ToBsonDocument();
+            oldProduct.GameKey = gameKey;
+
+            await _changeLogWriter.WriteAsync(
+                "Update",
+                nameof(NorthwindProductDocument),
+                productId.ToString(),
+                oldVersion,
+                oldProduct.ToBsonDocument());
+
+            return oldProduct;
+        }
+
+        return await collection
+            .Find(filterBuilder.Eq(product => product.Id, productId))
+            .FirstOrDefaultAsync();
+    }
+
     public async Task IncrementViewCountAsync(ObjectId productId)
     {
         var collection = mongoDbContext.Database

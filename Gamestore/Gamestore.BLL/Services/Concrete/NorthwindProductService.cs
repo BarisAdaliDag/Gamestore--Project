@@ -34,22 +34,47 @@ public sealed class NorthwindProductService(
             .GroupBy(category => category.CategoryId!.Value)
             .ToDictionary(group => group.Key, group => group.First().CategoryName!);
 
-        return [.. productRepository
+        return BuildCatalog(productRepository.Query(), suppliers, categories);
+    }
+
+    public async Task<IReadOnlyList<GameDto>> GetAllAsync()
+    {
+        return [.. (await GetAllWithReferencesAsync()).Select(item => item.Game)];
+    }
+
+    public async Task<IReadOnlyList<NorthwindGameCatalogItem>> GetAllWithReferencesAsync()
+    {
+        var suppliers = supplierRepository
+            .Query()
+            .ToList()
+            .Where(supplier => supplier.SupplierId.HasValue
+                && !string.IsNullOrWhiteSpace(supplier.CompanyName))
+            .GroupBy(supplier => supplier.SupplierId!.Value)
+            .ToDictionary(group => group.Key, group => group.First().CompanyName!);
+
+        var categories = categoryRepository
+            .Query()
+            .ToList()
+            .Where(category => category.CategoryId.HasValue
+                && !string.IsNullOrWhiteSpace(category.CategoryName))
+            .GroupBy(category => category.CategoryId!.Value)
+            .ToDictionary(group => group.Key, group => group.First().CategoryName!);
+
+        var products = productRepository
             .Query()
             .ToList()
             .Where(IsUsable)
-            .Select(product => new NorthwindGameCatalogItem
-            {
-                Game = MapToGame(product),
-                SupplierName = product.SupplierId.HasValue
-                    && suppliers.TryGetValue(product.SupplierId.Value, out var supplierName)
-                    ? supplierName
-                    : null,
-                CategoryName = product.CategoryId.HasValue
-                    && categories.TryGetValue(product.CategoryId.Value, out var categoryName)
-                    ? categoryName
-                    : null,
-            })];
+            .ToList();
+
+        var hydratedProducts = new List<NorthwindProductDocument>(products.Count);
+        foreach (var product in products)
+        {
+            var gameKey = GetGameKey(product);
+            var hydratedProduct = await productRepository.EnsureGameKeyAsync(product.Id, gameKey);
+            hydratedProducts.Add(hydratedProduct ?? product);
+        }
+
+        return BuildCatalog(hydratedProducts, suppliers, categories);
     }
 
     public async Task<GameDto?> GetByKeyAsync(string key)
@@ -66,6 +91,9 @@ public sealed class NorthwindProductService(
         {
             return null;
         }
+
+        var gameKey = GetGameKey(product);
+        product = await productRepository.EnsureGameKeyAsync(product.Id, gameKey) ?? product;
 
         await productRepository.IncrementViewCountAsync(product.Id);
         return MapToGame(product);
@@ -84,19 +112,43 @@ public sealed class NorthwindProductService(
             return null;
         }
 
+        var gameKey = GetGameKey(product);
+        product = await productRepository.EnsureGameKeyAsync(product.Id, gameKey) ?? product;
+
         await productRepository.IncrementViewCountAsync(product.Id);
         return MapToGame(product);
     }
 
-    public Task<NorthwindGameCatalogItem?> GetCatalogItemByKeyAsync(string key)
+    public async Task<NorthwindGameCatalogItem?> GetCatalogItemByKeyAsync(string key)
     {
-        var item = GetAllWithReferences()
+        var item = (await GetAllWithReferencesAsync())
             .FirstOrDefault(item => string.Equals(
                 item.Game.Key,
                 key,
                 StringComparison.OrdinalIgnoreCase));
 
-        return Task.FromResult(item);
+        return item;
+    }
+
+    private static IReadOnlyList<NorthwindGameCatalogItem> BuildCatalog(
+        IEnumerable<NorthwindProductDocument> products,
+        Dictionary<int, string> suppliers,
+        Dictionary<int, string> categories)
+    {
+        return [.. products
+            .Where(IsUsable)
+            .Select(product => new NorthwindGameCatalogItem
+            {
+                Game = MapToGame(product),
+                SupplierName = product.SupplierId.HasValue
+                    && suppliers.TryGetValue(product.SupplierId.Value, out var supplierName)
+                    ? supplierName
+                    : null,
+                CategoryName = product.CategoryId.HasValue
+                    && categories.TryGetValue(product.CategoryId.Value, out var categoryName)
+                    ? categoryName
+                    : null,
+            })];
     }
 
     private static bool IsUsable(NorthwindProductDocument product)

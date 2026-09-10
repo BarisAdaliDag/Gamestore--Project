@@ -40,8 +40,8 @@ public sealed class UnifiedGameCatalogService(
                 genre => genre.Id,
                 StringComparer.OrdinalIgnoreCase);
 
-        var mongoItems = northwindProductService
-            .GetAllWithReferences()
+        var mongoItems = (await northwindProductService
+            .GetAllWithReferencesAsync())
             .Where(item => !sqlNames.Contains(NormalizeName(item.Game.Name)))
             .Where(item => !sqlKeys.Contains(item.Game.Key))
             .GroupBy(item => NormalizeName(item.Game.Name), StringComparer.OrdinalIgnoreCase)
