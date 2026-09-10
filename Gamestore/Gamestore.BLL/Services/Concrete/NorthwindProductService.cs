@@ -52,6 +52,42 @@ public sealed class NorthwindProductService(
             })];
     }
 
+    public async Task<GameDto?> GetByKeyAsync(string key)
+    {
+        var product = productRepository
+            .Query()
+            .ToList()
+            .FirstOrDefault(product => string.Equals(
+                GetGameKey(product),
+                key,
+                StringComparison.OrdinalIgnoreCase));
+
+        if (product is null || !IsUsable(product))
+        {
+            return null;
+        }
+
+        await productRepository.IncrementViewCountAsync(product.Id);
+        return MapToGame(product);
+    }
+
+    public async Task<GameDto?> GetByIdAsync(Guid id)
+    {
+        var product = productRepository
+            .Query()
+            .ToList()
+            .FirstOrDefault(product => IsUsable(product)
+                && CreateStableId(product.Id) == id);
+
+        if (product is null)
+        {
+            return null;
+        }
+
+        await productRepository.IncrementViewCountAsync(product.Id);
+        return MapToGame(product);
+    }
+
     private static bool IsUsable(NorthwindProductDocument product)
     {
         return product.Id != MongoDB.Bson.ObjectId.Empty
@@ -60,9 +96,7 @@ public sealed class NorthwindProductService(
 
     private static GameDto MapToGame(NorthwindProductDocument product)
     {
-        var productKey = string.IsNullOrWhiteSpace(product.GameKey)
-            ? $"mongo-{product.Id}"
-            : product.GameKey!;
+        var productKey = GetGameKey(product);
 
         return new GameDto
         {
@@ -84,5 +118,12 @@ public sealed class NorthwindProductService(
         var guidBytes = new byte[16];
         Array.Copy(hash, guidBytes, 16);
         return new Guid(guidBytes);
+    }
+
+    private static string GetGameKey(NorthwindProductDocument product)
+    {
+        return string.IsNullOrWhiteSpace(product.GameKey)
+            ? $"mongo-{product.Id}"
+            : product.GameKey;
     }
 }

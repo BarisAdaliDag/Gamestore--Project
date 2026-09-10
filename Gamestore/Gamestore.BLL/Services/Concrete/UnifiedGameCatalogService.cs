@@ -1,4 +1,5 @@
 using Gamestore.BLL.DTOs.Games;
+using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Helpers;
 using Gamestore.BLL.Services.Abstract;
 using Gamestore.DAL.UnitOfWork;
@@ -115,6 +116,33 @@ public sealed class UnifiedGameCatalogService(
             TotalPages = totalPages,
             CurrentPage = currentPage,
         };
+    }
+
+    public async Task<GameDto> GetByKeyAsync(string key)
+    {
+        var sqlGame = await unitOfWork.Games.GetByKeyAsync(key);
+        if (sqlGame is not null)
+        {
+            await unitOfWork.Games.IncrementViewCountAsync(sqlGame.Id);
+            return mapper.Map<GameDto>(sqlGame);
+        }
+
+        var mongoGame = await northwindProductService.GetByKeyAsync(key);
+        return mongoGame
+            ?? throw new NotFoundException(nameof(Game), key);
+    }
+
+    public async Task<GameDto> GetByIdAsync(Guid id)
+    {
+        var sqlGame = await unitOfWork.Games.GetByIdAsync(id);
+        if (sqlGame is not null)
+        {
+            return mapper.Map<GameDto>(sqlGame);
+        }
+
+        var mongoGame = await northwindProductService.GetByIdAsync(id);
+        return mongoGame
+            ?? throw new NotFoundException(nameof(Game), id);
     }
 
     private CatalogItem CreateSqlItem(Game game)

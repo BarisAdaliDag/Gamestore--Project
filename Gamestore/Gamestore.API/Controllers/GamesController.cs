@@ -65,7 +65,7 @@ public class GamesController(
     [HttpGet("{key}")]
     public async Task<ActionResult<GameResponse>> GetByKey(string key)
     {
-        var dto = await _gameService.GetByKeyAsync(key);
+        var dto = await _unifiedGameCatalogService.GetByKeyAsync(key);
         var response = _mapper.Map<GameResponse>(dto);
 
         return Ok(response);
@@ -83,7 +83,7 @@ public class GamesController(
     [HttpGet("find/{id:guid}")]
     public async Task<ActionResult<GameResponse>> GetById(Guid id)
     {
-        var dto = await _gameService.GetByIdAsync(id);
+        var dto = await _unifiedGameCatalogService.GetByIdAsync(id);
         var response = _mapper.Map<GameResponse>(dto);
 
         return Ok(response);
