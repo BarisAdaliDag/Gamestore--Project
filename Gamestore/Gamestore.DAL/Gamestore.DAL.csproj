@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- MongoDB.Driver 2.7 is required for the bundled MongoDB 3.0.6 server in this learning project. -->
+    <!-- MongoDB.Driver 2.13 is the latest pre-2.14 driver compatible with the bundled MongoDB 3.0.6 server. -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1903</WarningsNotAsErrors>
   </PropertyGroup>
 
@@ -25,7 +25,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
-    <PackageReference Include="MongoDB.Driver" Version="2.7.0" />
+    <PackageReference Include="MongoDB.Driver" Version="2.13.0" />
   </ItemGroup>
 
   <ItemGroup>

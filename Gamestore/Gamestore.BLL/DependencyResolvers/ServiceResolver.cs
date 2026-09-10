@@ -12,6 +12,7 @@ public static class ServiceResolver
     public static IServiceCollection AddServiceLayer(this IServiceCollection services)
     {
         services.AddScoped<IGameService, GameService>();
+        services.AddScoped<INorthwindProductService, NorthwindProductService>();
         services.AddScoped<IGenreService, GenreService>();
         services.AddScoped<IPlatformService, PlatformService>();
         services.AddScoped<IPublisherService, PublisherService>();

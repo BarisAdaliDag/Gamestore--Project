@@ -1,5 +1,7 @@
 ﻿using Gamestore.DAL.Context;
 using Gamestore.DAL.Mongo;
+using Gamestore.DAL.Mongo.Repositories.Abstract;
+using Gamestore.DAL.Mongo.Repositories.Concrete;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.Repositories.Concrete;
 using Gamestore.DAL.UnitOfWork;
@@ -19,6 +21,7 @@ public static class DependencyInjection
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         services.AddSingleton<IMongoDbContext, MongoDbContext>();
+        services.AddScoped<INorthwindProductRepository, NorthwindProductRepository>();
 
         services.AddScoped<IGameRepository, GameRepository>();
         services.AddScoped<IGenreRepository, GenreRepository>();

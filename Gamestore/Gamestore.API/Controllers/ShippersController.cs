@@ -14,7 +14,7 @@ public class ShippersController(IMongoDbContext mongoDbContext) : ControllerBase
 {
     private static readonly JsonWriterSettings StrictJsonSettings = new()
     {
-        OutputMode = JsonOutputMode.Strict,
+        OutputMode = JsonOutputMode.CanonicalExtendedJson,
     };
 
     [HttpGet]
