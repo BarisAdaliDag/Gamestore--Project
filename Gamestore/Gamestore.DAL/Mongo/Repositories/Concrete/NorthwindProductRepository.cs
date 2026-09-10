@@ -8,6 +8,8 @@ namespace Gamestore.DAL.Mongo.Repositories.Concrete;
 public sealed class NorthwindProductRepository(IMongoDbContext mongoDbContext)
     : INorthwindProductRepository
 {
+    private readonly MongoEntityChangeLogWriter _changeLogWriter = new(mongoDbContext);
+
     public IQueryable<NorthwindProductDocument> Query()
     {
         return mongoDbContext.Database
@@ -15,13 +17,90 @@ public sealed class NorthwindProductRepository(IMongoDbContext mongoDbContext)
             .AsQueryable();
     }
 
-    public Task IncrementViewCountAsync(ObjectId productId)
+    public async Task IncrementViewCountAsync(ObjectId productId)
     {
         var collection = mongoDbContext.Database
             .GetCollection<NorthwindProductDocument>(NorthwindCollectionNames.Products);
         var filter = Builders<NorthwindProductDocument>.Filter.Eq(product => product.Id, productId);
         var update = Builders<NorthwindProductDocument>.Update.Inc(product => product.ViewCount, 1);
 
-        return collection.UpdateOneAsync(filter, update);
+        var oldProduct = await collection.FindOneAndUpdateAsync(
+            filter,
+            update,
+            new FindOneAndUpdateOptions<NorthwindProductDocument>
+            {
+                ReturnDocument = ReturnDocument.Before,
+            });
+
+        if (oldProduct == null)
+        {
+            return;
+        }
+
+        var oldVersion = oldProduct.ToBsonDocument();
+        oldProduct.ViewCount = (oldProduct.ViewCount ?? 0) + 1;
+
+        await _changeLogWriter.WriteAsync(
+            "Update",
+            nameof(NorthwindProductDocument),
+            productId.ToString(),
+            oldVersion,
+            oldProduct.ToBsonDocument());
+    }
+
+    public async Task<bool> DecrementStockAsync(string gameKey, int quantity)
+    {
+        if (quantity <= 0 || string.IsNullOrWhiteSpace(gameKey))
+        {
+            return false;
+        }
+
+        var collection = mongoDbContext.Database
+            .GetCollection<NorthwindProductDocument>(NorthwindCollectionNames.Products);
+        var productFilter = Builders<NorthwindProductDocument>.Filter.Eq(
+            product => product.GameKey,
+            gameKey);
+
+        if (gameKey.StartsWith("mongo-", StringComparison.OrdinalIgnoreCase)
+            && ObjectId.TryParse(gameKey["mongo-".Length..], out var productId))
+        {
+            productFilter = Builders<NorthwindProductDocument>.Filter.Or(
+                productFilter,
+                Builders<NorthwindProductDocument>.Filter.Eq(product => product.Id, productId));
+        }
+
+        var filter = Builders<NorthwindProductDocument>.Filter.And(
+            productFilter,
+            Builders<NorthwindProductDocument>.Filter.Gte(
+                product => product.UnitsInStock,
+                quantity));
+        var update = Builders<NorthwindProductDocument>.Update.Inc(
+            product => product.UnitsInStock,
+            -quantity);
+
+        var oldProduct = await collection.FindOneAndUpdateAsync(
+            filter,
+            update,
+            new FindOneAndUpdateOptions<NorthwindProductDocument>
+            {
+                ReturnDocument = ReturnDocument.Before,
+            });
+
+        if (oldProduct == null)
+        {
+            return false;
+        }
+
+        var oldVersion = oldProduct.ToBsonDocument();
+        oldProduct.UnitsInStock = (oldProduct.UnitsInStock ?? 0) - quantity;
+
+        await _changeLogWriter.WriteAsync(
+            "Update",
+            nameof(NorthwindProductDocument),
+            gameKey,
+            oldVersion,
+            oldProduct.ToBsonDocument());
+
+        return true;
     }
 }

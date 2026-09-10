@@ -21,6 +21,7 @@ public class OrderRepository(GamestoreDbContext context)
     {
         return await DbSet
             .Include(o => o.OrderGames)
+            .ThenInclude(orderGame => orderGame.Game)
             .FirstOrDefaultAsync(o => o.Id == id);
     }
 

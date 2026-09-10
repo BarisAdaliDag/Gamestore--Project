@@ -21,6 +21,7 @@ public static class DependencyInjection
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         services.AddSingleton<IMongoDbContext, MongoDbContext>();
+        services.AddSingleton<IEntityChangeLogWriter, MongoEntityChangeLogWriter>();
         services.AddScoped<INorthwindProductRepository, NorthwindProductRepository>();
         services.AddScoped<INorthwindOrderRepository, NorthwindOrderRepository>();
         services.AddScoped<INorthwindSupplierRepository, NorthwindSupplierRepository>();

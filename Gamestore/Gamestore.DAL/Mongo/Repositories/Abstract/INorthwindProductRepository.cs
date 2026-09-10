@@ -8,4 +8,6 @@ public interface INorthwindProductRepository
     IQueryable<NorthwindProductDocument> Query();
 
     Task IncrementViewCountAsync(ObjectId productId);
+
+    Task<bool> DecrementStockAsync(string gameKey, int quantity);
 }

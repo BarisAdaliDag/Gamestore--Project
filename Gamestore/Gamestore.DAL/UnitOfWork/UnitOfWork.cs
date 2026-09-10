@@ -1,18 +1,25 @@
-﻿using Gamestore.DAL.Context;
+using Gamestore.DAL.Context;
+using Gamestore.DAL.Mongo;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.Repositories.Concrete;
 using Gamestore.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
 
 namespace Gamestore.DAL.UnitOfWork;
 
 public class UnitOfWork : IUnitOfWork
 {
     private readonly GamestoreDbContext _context;
+    private readonly IEntityChangeLogWriter? _changeLogWriter;
     private bool _disposed;
 
-    public UnitOfWork(GamestoreDbContext context)
+    public UnitOfWork(
+        GamestoreDbContext context,
+        IEntityChangeLogWriter? changeLogWriter = null)
     {
         _context = context;
+        _changeLogWriter = changeLogWriter;
         Games = new GameRepository(_context);
         Genres = new GenreRepository(_context);
         Platforms = new PlatformRepository(_context);
@@ -47,7 +54,23 @@ public class UnitOfWork : IUnitOfWork
 
     public async Task<int> SaveChangesAsync()
     {
-        return await _context.SaveChangesAsync();
+        var changes = CaptureChanges();
+        var result = await _context.SaveChangesAsync();
+
+        if (_changeLogWriter != null)
+        {
+            foreach (var change in changes)
+            {
+                await _changeLogWriter.WriteAsync(
+                    change.Action,
+                    change.EntityType,
+                    change.EntityId,
+                    change.OldVersion,
+                    change.NewVersion);
+            }
+        }
+
+        return result;
     }
 
     public void Dispose()
@@ -64,5 +87,97 @@ public class UnitOfWork : IUnitOfWork
         }
 
         _disposed = true;
+    }
+
+    private List<EntityChange> CaptureChanges()
+    {
+        return [.. _context.ChangeTracker
+            .Entries()
+            .Where(entry => entry.State is not EntityState.Unchanged and not EntityState.Detached)
+            .Select(entry =>
+            {
+                var oldVersion = entry.State == EntityState.Added
+                    ? null
+                    : Snapshot(entry, useOriginalValues: true);
+                var newVersion = entry.State == EntityState.Deleted
+                    ? null
+                    : Snapshot(entry, useOriginalValues: false);
+
+                return new EntityChange(
+                    entry.State switch
+                    {
+                        EntityState.Added => "Create",
+                        EntityState.Deleted => "Delete",
+                        EntityState.Modified => "Update",
+                        EntityState.Unchanged => "Update",
+                        EntityState.Detached => "Update",
+                        _ => "Update",
+                    },
+                    entry.Metadata.ClrType.Name,
+                    GetEntityId(entry),
+                    oldVersion,
+                    newVersion);
+            })
+            ];
+    }
+
+    private static string GetEntityId(
+        Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
+    {
+        var keyValues = entry.Metadata.FindPrimaryKey()?.Properties
+            .Select(property => entry.Property(property.Name).CurrentValue?.ToString() ?? string.Empty)
+            .ToArray() ?? [];
+
+        return string.Join(",", keyValues);
+    }
+
+    private static BsonDocument Snapshot(
+        Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry,
+        bool useOriginalValues)
+    {
+        var document = new BsonDocument();
+
+        foreach (var property in entry.Properties)
+        {
+            var value = useOriginalValues
+                ? property.OriginalValue
+                : property.CurrentValue;
+
+            document[property.Metadata.Name] = ToBsonValue(value);
+        }
+
+        return document;
+    }
+
+    private static BsonValue ToBsonValue(object? value)
+    {
+        if (value is null)
+        {
+            return BsonNull.Value;
+        }
+
+        if (value is Guid guid)
+        {
+            return guid.ToString();
+        }
+
+        if (value is DateTime dateTime)
+        {
+            return new BsonDateTime(dateTime);
+        }
+
+        if (value.GetType().IsEnum)
+        {
+            return value.ToString() ?? string.Empty;
+        }
+
+        try
+        {
+            return BsonValue.Create(value);
+        }
+        catch (ArgumentException)
+        {
+            return value.ToString() ?? string.Empty;
+        }
     }
 }

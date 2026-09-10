@@ -19,7 +19,8 @@ public class OrderService(
     IMapper mapper,
     IConfiguration configuration,
     INorthwindOrderRepository? northwindOrderRepository = null,
-    IGameMaterializationService? gameMaterializationService = null) : IOrderService
+    IGameMaterializationService? gameMaterializationService = null,
+    INorthwindProductRepository? northwindProductRepository = null) : IOrderService
 {
     // The payment microservice validates the IBox account number against its
     // seeded account.json. Keep the development customer aligned with that
@@ -31,6 +32,9 @@ public class OrderService(
     private readonly INorthwindOrderRepository? _northwindOrderRepository = northwindOrderRepository;
 
     private readonly IGameMaterializationService? _gameMaterializationService = gameMaterializationService;
+
+    private readonly INorthwindProductRepository? _northwindProductRepository =
+        northwindProductRepository;
 
     public async Task AddToCartAsync(string gameKey)
     {
@@ -199,6 +203,8 @@ public class OrderService(
         var order = await unitOfWork.Orders.GetByIdAsync(orderId)
             ?? throw new NotFoundException(nameof(Order), orderId);
 
+        await SynchronizeStockAfterPaymentAsync(orderId);
+
         order.Status = OrderStatus.Paid;
         order.Date = DateTime.UtcNow;
         unitOfWork.Orders.Update(order);
@@ -230,6 +236,47 @@ public class OrderService(
     {
         return items.Sum(item =>
             item.Price * item.Quantity * (1 - ((item.Discount ?? 0) / 100.0)));
+    }
+
+    private async Task SynchronizeStockAfterPaymentAsync(Guid orderId)
+    {
+        if (_northwindProductRepository == null)
+        {
+            return;
+        }
+
+        var order = await unitOfWork.Orders.GetByIdWithDetailsAsync(orderId);
+        if (order == null)
+        {
+            return;
+        }
+
+        foreach (var item in order.OrderGames)
+        {
+            var game = item.Game;
+            if (game == null || item.Quantity <= 0)
+            {
+                continue;
+            }
+
+            if (game.UnitInStock < item.Quantity)
+            {
+                throw new OutOfStockException(
+                    $"Cannot complete payment for '{game.Name}'. Only {game.UnitInStock} units available.");
+            }
+
+            if (game.Key.StartsWith("mongo-", StringComparison.OrdinalIgnoreCase)
+                && !await _northwindProductRepository.DecrementStockAsync(
+                    game.Key,
+                    item.Quantity))
+            {
+                throw new OutOfStockException(
+                    $"Cannot complete payment for '{game.Name}'. Northwind stock is insufficient.");
+            }
+
+            game.UnitInStock -= item.Quantity;
+            unitOfWork.Games.Update(game);
+        }
     }
 
     private async Task<Order> GetOrCreateOpenOrderAsync()
