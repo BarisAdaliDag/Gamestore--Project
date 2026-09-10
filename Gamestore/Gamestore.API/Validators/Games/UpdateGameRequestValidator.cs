@@ -50,9 +50,12 @@ public class UpdateGameRequestValidator : AbstractValidator<UpdateGameRequest>
             .NotEmpty()
             .WithMessage("At least one genre is required.");
 
-        RuleFor(request => request.Platforms)
-            .NotEmpty()
-            .WithMessage("At least one platform is required.");
+        When(
+            request => request.Game == null
+                || !request.Game.Key.StartsWith("mongo-", StringComparison.OrdinalIgnoreCase),
+            () => RuleFor(request => request.Platforms)
+                .NotEmpty()
+                .WithMessage("At least one platform is required."));
 
         RuleFor(request => request.Publisher)
             .NotEmpty()

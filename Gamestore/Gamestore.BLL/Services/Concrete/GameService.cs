@@ -19,7 +19,8 @@ public class GameService(
     IUnitOfWork unitOfWork,
     IMapper mapper,
     GameQueryPipeline pipeline,
-    ILogger<GameService> logger)
+    ILogger<GameService> logger,
+    IGameMaterializationService? gameMaterializationService = null)
     : BaseService<GameDto, Game>(unitOfWork, mapper), IGameService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -28,6 +29,7 @@ public class GameService(
     };
 
     private readonly ILogger<GameService> _logger = logger;
+    private readonly IGameMaterializationService? _gameMaterializationService = gameMaterializationService;
 
     public GameService(IUnitOfWork unitOfWork, IMapper mapper, GameQueryPipeline pipeline)
         : this(unitOfWork, mapper, pipeline, NullLogger<GameService>.Instance)
@@ -195,15 +197,19 @@ public class GameService(
         _logger.LogInformation("Updating game: {Id}", dto.Game.Id);
 
         var game = await UnitOfWork.Games.GetByIdWithDetailsAsync(dto.Game.Id)
+            ?? await GetMongoGameCopyAsync(dto.Game.Key)
             ?? throw new NotFoundException(nameof(Game), dto.Game.Id);
 
         var keyOwner = await UnitOfWork.Games.GetByKeyAsync(dto.Game.Key);
-        if (keyOwner != null && keyOwner.Id != dto.Game.Id)
+        if (keyOwner != null && keyOwner.Id != game.Id)
         {
             throw new EntityAlreadyExistsException(nameof(Game), "key", dto.Game.Key);
         }
 
-        var (genreIds, platformIds) = await ValidateRelationIdsAsync(dto.Genres, dto.Platforms);
+        var isMongoGame = IsMongoGameKey(dto.Game.Key);
+        var (genreIds, platformIds) = await ValidateRelationIdsAsync(
+            dto.Genres,
+            isMongoGame ? [] : dto.Platforms);
         await ValidatePublisherAsync(dto.Publisher);
 
         game.Name = dto.Game.Name;
@@ -239,6 +245,7 @@ public class GameService(
         _logger.LogInformation("Deleting game: {Key}", key);
 
         var game = await UnitOfWork.Games.GetByKeyAsync(key)
+            ?? await GetMongoGameCopyAsync(key)
             ?? throw new NotFoundException(nameof(Game), key);
 
         var isInAnyOrder = (await UnitOfWork.OrderGames
@@ -270,6 +277,18 @@ public class GameService(
     private static string GenerateKey(string name)
     {
         return name.ToLowerInvariant().Replace(" ", "-", StringComparison.Ordinal);
+    }
+
+    private Task<Game?> GetMongoGameCopyAsync(string key)
+    {
+        return _gameMaterializationService is not null && IsMongoGameKey(key)
+            ? _gameMaterializationService.GetOrCreateAsync(key)
+            : Task.FromResult<Game?>(null);
+    }
+
+    private static bool IsMongoGameKey(string key)
+    {
+        return key.StartsWith("mongo-", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task ValidatePublisherAsync(Guid publisherId)

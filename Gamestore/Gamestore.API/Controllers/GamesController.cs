@@ -24,6 +24,7 @@ public class GamesController(
     IOrderService orderService,
     ICommentService commentService,
     IUnifiedGameCatalogService unifiedGameCatalogService,
+    IGameMaterializationService gameMaterializationService,
     IMapper mapper) : ControllerBase
 {
     private readonly IGameService _gameService = gameService;
@@ -33,6 +34,7 @@ public class GamesController(
     private readonly IOrderService _orderService = orderService;
     private readonly ICommentService _commentService = commentService;
     private readonly IUnifiedGameCatalogService _unifiedGameCatalogService = unifiedGameCatalogService;
+    private readonly IGameMaterializationService _gameMaterializationService = gameMaterializationService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
@@ -74,6 +76,7 @@ public class GamesController(
     [HttpGet("{key}/publisher")]
     public async Task<ActionResult<PublisherResponse>> GetPublisherByGameKey(string key)
     {
+        await _gameMaterializationService.GetOrCreateAsync(key);
         var dto = await _publisherService.GetByGameKeyAsync(key);
         var response = _mapper.Map<PublisherResponse>(dto);
 
@@ -92,6 +95,7 @@ public class GamesController(
     [HttpGet("{key}/genres")]
     public async Task<ActionResult<IEnumerable<GenreResponse>>> GetGenresByGameKey(string key)
     {
+        await _gameMaterializationService.GetOrCreateAsync(key);
         var dtos = await _genreService.GetByGameKeyAsync(key);
         var response = _mapper.Map<IEnumerable<GenreResponse>>(dtos);
 
@@ -101,6 +105,7 @@ public class GamesController(
     [HttpGet("{key}/platforms")]
     public async Task<ActionResult<IEnumerable<PlatformResponse>>> GetPlatformsByGameKey(string key)
     {
+        await _gameMaterializationService.GetOrCreateAsync(key);
         var dtos = await _platformService.GetByGameKeyAsync(key);
         var response = _mapper.Map<IEnumerable<PlatformResponse>>(dtos);
 
