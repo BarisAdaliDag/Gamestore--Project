@@ -5,7 +5,7 @@ namespace Gamestore.DAL.Mongo;
 
 public sealed class MongoDbContext : IMongoDbContext
 {
-    private readonly IMongoClient _client;
+    private readonly MongoClient _client;
 
     public MongoDbContext(IConfiguration configuration)
     {

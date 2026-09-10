@@ -1,8 +1,8 @@
 ﻿using Gamestore.DAL.Context;
+using Gamestore.DAL.Mongo;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.Repositories.Concrete;
 using Gamestore.DAL.UnitOfWork;
-using Gamestore.DAL.Mongo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
