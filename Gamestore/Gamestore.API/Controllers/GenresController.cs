@@ -17,10 +17,12 @@ namespace Gamestore.API.Controllers;
 public class GenresController(
     IGenreService genreService,
     IGameService gameService,
+    IUnifiedReferenceService unifiedReferenceService,
     IMapper mapper) : ControllerBase
 {
     private readonly IGenreService _genreService = genreService;
     private readonly IGameService _gameService = gameService;
+    private readonly IUnifiedReferenceService _unifiedReferenceService = unifiedReferenceService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
@@ -29,7 +31,7 @@ public class GenresController(
     {
         if (!Request.Query.ContainsKey("Page") && !Request.Query.ContainsKey("Size"))
         {
-            var legacyDtos = await _genreService.GetAllAsync();
+            var legacyDtos = await _unifiedReferenceService.GetGenresAsync();
             return Ok(_mapper.Map<IEnumerable<GenreResponse>>(legacyDtos));
         }
 

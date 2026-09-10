@@ -27,12 +27,24 @@ public sealed class UnifiedGameCatalogService(
             .Select(item => item.Game.Key)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        var sqlPublisherIds = (await unitOfWork.Publishers.GetAllAsync())
+            .ToDictionary(
+                publisher => NorthwindReferenceIdentity.Normalize(publisher.CompanyName),
+                publisher => publisher.Id,
+                StringComparer.OrdinalIgnoreCase);
+
+        var sqlGenreIds = (await unitOfWork.Genres.GetAllAsync())
+            .ToDictionary(
+                genre => NorthwindReferenceIdentity.Normalize(genre.Name),
+                genre => genre.Id,
+                StringComparer.OrdinalIgnoreCase);
+
         var mongoItems = northwindProductService
-            .GetAll()
-            .Where(game => !sqlNames.Contains(NormalizeName(game.Name)))
-            .Where(game => !sqlKeys.Contains(game.Key))
-            .GroupBy(game => NormalizeName(game.Name), StringComparer.OrdinalIgnoreCase)
-            .Select(group => CreateMongoItem(group.First()))
+            .GetAllWithReferences()
+            .Where(item => !sqlNames.Contains(NormalizeName(item.Game.Name)))
+            .Where(item => !sqlKeys.Contains(item.Game.Key))
+            .GroupBy(item => NormalizeName(item.Game.Name), StringComparer.OrdinalIgnoreCase)
+            .Select(group => CreateMongoItem(group.First(), sqlPublisherIds, sqlGenreIds))
             .ToList();
 
         catalog.AddRange(mongoItems);
@@ -42,8 +54,7 @@ public sealed class UnifiedGameCatalogService(
         var genreIds = parameters.Genres;
         if (genreIds is { Count: > 0 })
         {
-            filtered = filtered.Where(item => !item.IsMongo
-                && item.GenreIds.Any(genreIds.Contains));
+            filtered = filtered.Where(item => item.GenreIds.Any(genreIds.Contains));
         }
 
         var platformIds = parameters.Platforms;
@@ -56,8 +67,7 @@ public sealed class UnifiedGameCatalogService(
         var publisherIds = parameters.Publishers;
         if (publisherIds is { Count: > 0 })
         {
-            filtered = filtered.Where(item => !item.IsMongo
-                && publisherIds.Contains(item.PublisherId));
+            filtered = filtered.Where(item => publisherIds.Contains(item.PublisherId));
         }
 
         if (parameters.MinPrice.HasValue)
@@ -122,14 +132,29 @@ public sealed class UnifiedGameCatalogService(
         };
     }
 
-    private static CatalogItem CreateMongoItem(GameDto game)
+    private static CatalogItem CreateMongoItem(
+        NorthwindGameCatalogItem item,
+        IReadOnlyDictionary<string, Guid> publisherIds,
+        IReadOnlyDictionary<string, Guid> genreIds)
     {
+        var publisherId = item.SupplierName is not null
+            ? publisherIds.GetValueOrDefault(
+                NorthwindReferenceIdentity.Normalize(item.SupplierName),
+                NorthwindReferenceIdentity.CreateSupplierId(item.SupplierName))
+            : Guid.Empty;
+
+        var genreId = item.CategoryName is not null
+            ? genreIds.GetValueOrDefault(
+                NorthwindReferenceIdentity.Normalize(item.CategoryName),
+                NorthwindReferenceIdentity.CreateCategoryId(item.CategoryName))
+            : Guid.Empty;
+
         return new CatalogItem
         {
-            Game = game,
+            Game = item.Game,
             IsMongo = true,
-            PublisherId = Guid.Empty,
-            GenreIds = [],
+            PublisherId = publisherId,
+            GenreIds = genreId == Guid.Empty ? [] : [genreId],
             PlatformIds = [],
             ViewCount = 0,
             CommentCount = 0,
@@ -164,14 +189,7 @@ public sealed class UnifiedGameCatalogService(
         };
     }
 
-    private static string NormalizeName(string name)
-    {
-        return string.Join(
-            ' ',
-            name.Trim()
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries))
-            .ToUpperInvariant();
-    }
+    private static string NormalizeName(string name) => NorthwindReferenceIdentity.Normalize(name);
 
     private sealed class CatalogItem
     {

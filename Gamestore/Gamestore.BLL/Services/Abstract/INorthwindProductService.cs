@@ -5,4 +5,6 @@ namespace Gamestore.BLL.Services.Abstract;
 public interface INorthwindProductService
 {
     IReadOnlyList<GameDto> GetAll();
+
+    IReadOnlyList<NorthwindGameCatalogItem> GetAllWithReferences();
 }

@@ -14,16 +14,18 @@ namespace Gamestore.API.Controllers;
 public class PublishersController(
     IPublisherService publisherService,
     IGameService gameService,
+    IUnifiedReferenceService unifiedReferenceService,
     IMapper mapper) : ControllerBase
 {
     private readonly IPublisherService _publisherService = publisherService;
     private readonly IGameService _gameService = gameService;
+    private readonly IUnifiedReferenceService _unifiedReferenceService = unifiedReferenceService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<PublisherResponse>>> GetAll()
     {
-        var dtos = await _publisherService.GetAllAsync();
+        var dtos = await _unifiedReferenceService.GetPublishersAsync();
         var response = _mapper.Map<IEnumerable<PublisherResponse>>(dtos);
 
         return Ok(response);

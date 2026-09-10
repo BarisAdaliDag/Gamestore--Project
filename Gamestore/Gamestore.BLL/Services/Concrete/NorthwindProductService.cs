@@ -7,15 +7,49 @@ using Gamestore.DAL.Mongo.Repositories.Abstract;
 namespace Gamestore.BLL.Services.Concrete;
 
 public sealed class NorthwindProductService(
-    INorthwindProductRepository productRepository) : INorthwindProductService
+    INorthwindProductRepository productRepository,
+    INorthwindSupplierRepository supplierRepository,
+    INorthwindCategoryRepository categoryRepository) : INorthwindProductService
 {
     public IReadOnlyList<GameDto> GetAll()
     {
+        return [.. GetAllWithReferences().Select(item => item.Game)];
+    }
+
+    public IReadOnlyList<NorthwindGameCatalogItem> GetAllWithReferences()
+    {
+        var suppliers = supplierRepository
+            .Query()
+            .ToList()
+            .Where(supplier => supplier.SupplierId.HasValue
+                && !string.IsNullOrWhiteSpace(supplier.CompanyName))
+            .GroupBy(supplier => supplier.SupplierId!.Value)
+            .ToDictionary(group => group.Key, group => group.First().CompanyName!);
+
+        var categories = categoryRepository
+            .Query()
+            .ToList()
+            .Where(category => category.CategoryId.HasValue
+                && !string.IsNullOrWhiteSpace(category.CategoryName))
+            .GroupBy(category => category.CategoryId!.Value)
+            .ToDictionary(group => group.Key, group => group.First().CategoryName!);
+
         return [.. productRepository
-        .Query()
-        .ToList()
-        .Where(IsUsable)
-        .Select(MapToGame)];
+            .Query()
+            .ToList()
+            .Where(IsUsable)
+            .Select(product => new NorthwindGameCatalogItem
+            {
+                Game = MapToGame(product),
+                SupplierName = product.SupplierId.HasValue
+                    && suppliers.TryGetValue(product.SupplierId.Value, out var supplierName)
+                    ? supplierName
+                    : null,
+                CategoryName = product.CategoryId.HasValue
+                    && categories.TryGetValue(product.CategoryId.Value, out var categoryName)
+                    ? categoryName
+                    : null,
+            })];
     }
 
     private static bool IsUsable(NorthwindProductDocument product)

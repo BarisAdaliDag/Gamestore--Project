@@ -23,6 +23,8 @@ public static class DependencyInjection
         services.AddSingleton<IMongoDbContext, MongoDbContext>();
         services.AddScoped<INorthwindProductRepository, NorthwindProductRepository>();
         services.AddScoped<INorthwindOrderRepository, NorthwindOrderRepository>();
+        services.AddScoped<INorthwindSupplierRepository, NorthwindSupplierRepository>();
+        services.AddScoped<INorthwindCategoryRepository, NorthwindCategoryRepository>();
 
         services.AddScoped<IGameRepository, GameRepository>();
         services.AddScoped<IGenreRepository, GenreRepository>();
