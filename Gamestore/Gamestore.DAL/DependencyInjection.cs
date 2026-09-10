@@ -2,6 +2,7 @@
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.Repositories.Concrete;
 using Gamestore.DAL.UnitOfWork;
+using Gamestore.DAL.Mongo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,8 @@ public static class DependencyInjection
     {
         services.AddDbContext<GamestoreDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+
+        services.AddSingleton<IMongoDbContext, MongoDbContext>();
 
         services.AddScoped<IGameRepository, GameRepository>();
         services.AddScoped<IGenreRepository, GenreRepository>();
