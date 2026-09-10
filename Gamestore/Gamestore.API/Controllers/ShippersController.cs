@@ -12,8 +12,6 @@ namespace Gamestore.API.Controllers;
 [Route("[controller]")]
 public class ShippersController(IMongoDbContext mongoDbContext) : ControllerBase
 {
-    private const string CollectionName = "shippers";
-
     private static readonly JsonWriterSettings StrictJsonSettings = new()
     {
         OutputMode = JsonOutputMode.Strict,
@@ -22,7 +20,8 @@ public class ShippersController(IMongoDbContext mongoDbContext) : ControllerBase
     [HttpGet]
     public ActionResult<IEnumerable<JsonElement>> GetAll()
     {
-        var collection = mongoDbContext.Database.GetCollection<BsonDocument>(CollectionName);
+        var collection = mongoDbContext.Database.GetCollection<BsonDocument>(
+            NorthwindCollectionNames.Shippers);
 
         var documents = collection
             .AsQueryable()
