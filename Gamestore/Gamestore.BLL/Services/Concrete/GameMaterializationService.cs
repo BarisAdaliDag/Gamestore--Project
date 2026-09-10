@@ -10,6 +10,8 @@ public sealed class GameMaterializationService(
     IUnitOfWork unitOfWork,
     INorthwindProductService northwindProductService) : IGameMaterializationService
 {
+    private static readonly SemaphoreSlim MaterializationLock = new(1, 1);
+
     public async Task<Game?> GetOrCreateAsync(string gameKey)
     {
         if (!gameKey.StartsWith("mongo-", StringComparison.OrdinalIgnoreCase))
@@ -17,6 +19,19 @@ public sealed class GameMaterializationService(
             return await unitOfWork.Games.GetByKeyAsync(gameKey);
         }
 
+        await MaterializationLock.WaitAsync();
+        try
+        {
+            return await MaterializeMongoGameAsync(gameKey);
+        }
+        finally
+        {
+            MaterializationLock.Release();
+        }
+    }
+
+    private async Task<Game?> MaterializeMongoGameAsync(string gameKey)
+    {
         var mongoItem = await northwindProductService.GetCatalogItemByKeyAsync(gameKey);
         if (mongoItem is null)
         {

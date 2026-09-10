@@ -20,7 +20,8 @@ public class GameService(
     IMapper mapper,
     GameQueryPipeline pipeline,
     ILogger<GameService> logger,
-    IGameMaterializationService? gameMaterializationService = null)
+    IGameMaterializationService? gameMaterializationService = null,
+    INorthwindProductService? northwindProductService = null)
     : BaseService<GameDto, Game>(unitOfWork, mapper), IGameService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -30,6 +31,7 @@ public class GameService(
 
     private readonly ILogger<GameService> _logger = logger;
     private readonly IGameMaterializationService? _gameMaterializationService = gameMaterializationService;
+    private readonly INorthwindProductService? _northwindProductService = northwindProductService;
 
     public GameService(IUnitOfWork unitOfWork, IMapper mapper, GameQueryPipeline pipeline)
         : this(unitOfWork, mapper, pipeline, NullLogger<GameService>.Instance)
@@ -94,24 +96,46 @@ public class GameService(
     public async Task<IEnumerable<GameDto>> GetByGenreIdAsync(Guid genreId)
     {
         var games = await UnitOfWork.Games.GetByGenreIdAsync(genreId);
-        return Mapper.Map<IEnumerable<GameDto>>(games);
+        var result = Mapper.Map<IEnumerable<GameDto>>(games).ToList();
+
+        if (_northwindProductService == null)
+        {
+            return result;
+        }
+
+        var genre = await UnitOfWork.Genres.GetByIdAsync(genreId);
+        var sqlNames = result
+            .Select(game => NormalizeName(game.Name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var sqlKeys = result
+            .Select(game => game.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        result.AddRange(_northwindProductService
+            .GetAllWithReferences()
+            .Where(item => IsGenreMatch(item.CategoryName, genre?.Name, genreId))
+            .Where(item => sqlNames.Add(NormalizeName(item.Game.Name)))
+            .Where(item => sqlKeys.Add(item.Game.Key))
+            .Select(item => item.Game));
+
+        return result;
     }
 
     public async Task<PagedResultDto<GameDto>> GetByGenreIdAsync(
         Guid genreId,
         PaginationParamsDto paginationParams)
     {
-        var (items, totalCount) = await UnitOfWork.Games.GetPagedAsync(
-            paginationParams.Page,
-            paginationParams.Size,
-            game => game.GameGenres.Any(gameGenre => gameGenre.GenreId == genreId));
+        var allGames = (await GetByGenreIdAsync(genreId)).ToList();
+        var page = Math.Max(1, paginationParams.Page);
 
         return new PagedResultDto<GameDto>
         {
-            Items = Mapper.Map<IEnumerable<GameDto>>(items),
-            CurrentPage = paginationParams.Page,
+            Items = allGames
+                .Skip((page - 1) * paginationParams.Size)
+                .Take(paginationParams.Size),
+            CurrentPage = page,
             PageSize = paginationParams.Size,
-            TotalCount = totalCount,
+            TotalCount = allGames.Count,
         };
     }
 
@@ -142,7 +166,31 @@ public class GameService(
     public async Task<IEnumerable<GameDto>> GetByPublisherNameAsync(string companyName)
     {
         var games = await UnitOfWork.Games.GetByPublisherNameAsync(companyName);
-        return Mapper.Map<IEnumerable<GameDto>>(games);
+        var result = Mapper.Map<IEnumerable<GameDto>>(games).ToList();
+
+        if (_northwindProductService == null)
+        {
+            return result;
+        }
+
+        var sqlNames = result
+            .Select(game => NormalizeName(game.Name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var sqlKeys = result
+            .Select(game => game.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        result.AddRange(_northwindProductService
+            .GetAllWithReferences()
+            .Where(item => string.Equals(
+                NormalizeName(item.SupplierName),
+                NormalizeName(companyName),
+                StringComparison.OrdinalIgnoreCase))
+            .Where(item => sqlNames.Add(NormalizeName(item.Game.Name)))
+            .Where(item => sqlKeys.Add(item.Game.Key))
+            .Select(item => item.Game));
+
+        return result;
     }
 
     public async Task<GameDto> CreateAsync(CreateGameDto dto)
@@ -289,6 +337,27 @@ public class GameService(
     private static bool IsMongoGameKey(string key)
     {
         return key.StartsWith("mongo-", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsGenreMatch(
+        string? categoryName,
+        string? sqlGenreName,
+        Guid genreId)
+    {
+        return !string.IsNullOrWhiteSpace(categoryName)
+            && (sqlGenreName != null
+                ? string.Equals(
+                    NormalizeName(categoryName),
+                    NormalizeName(sqlGenreName),
+                    StringComparison.OrdinalIgnoreCase)
+                : NorthwindReferenceIdentity.CreateCategoryId(categoryName) == genreId);
+    }
+
+    private static string NormalizeName(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : NorthwindReferenceIdentity.Normalize(value);
     }
 
     private async Task ValidatePublisherAsync(Guid publisherId)
