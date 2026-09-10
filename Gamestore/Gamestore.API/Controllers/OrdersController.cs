@@ -37,6 +37,15 @@ public class OrdersController(
         return Ok(mapper.Map<IEnumerable<OrderResponse>>(dtos));
     }
 
+    [HttpGet("history")]
+    public async Task<ActionResult<IEnumerable<OrderResponse>>> GetHistory(
+        [FromQuery] DateTime? start,
+        [FromQuery] DateTime? end)
+    {
+        var dtos = await orderService.GetOrderHistoryAsync(start, end);
+        return Ok(mapper.Map<IEnumerable<OrderResponse>>(dtos));
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<OrderResponse>> GetOrderById(Guid id)
     {

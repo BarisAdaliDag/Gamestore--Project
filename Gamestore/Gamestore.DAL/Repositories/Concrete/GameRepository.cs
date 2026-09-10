@@ -12,6 +12,16 @@ public class GameRepository(GamestoreDbContext context) : Repository<Game>(conte
         return DbSet.AsNoTracking();
     }
 
+    public async Task<IEnumerable<Game>> GetAllWithDetailsAsync()
+    {
+        return await DbSet
+            .AsNoTracking()
+            .Include(game => game.GameGenres)
+            .Include(game => game.GamePlatforms)
+            .Include(game => game.Comments)
+            .ToListAsync();
+    }
+
     public async Task<Game?> GetByKeyAsync(string key)
     {
         return await DbSet.FirstOrDefaultAsync(g => g.Key == key);

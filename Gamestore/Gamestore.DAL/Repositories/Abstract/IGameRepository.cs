@@ -10,6 +10,8 @@ public interface IGameRepository : IRepository<Game>
     /// </summary>
     IQueryable<Game> Query();
 
+    Task<IEnumerable<Game>> GetAllWithDetailsAsync();
+
     Task<Game?> GetByKeyAsync(string key);
 
     Task IncrementViewCountAsync(Guid gameId);

@@ -23,6 +23,7 @@ public class GamesController(
     IPublisherService publisherService,
     IOrderService orderService,
     ICommentService commentService,
+    IUnifiedGameCatalogService unifiedGameCatalogService,
     IMapper mapper) : ControllerBase
 {
     private readonly IGameService _gameService = gameService;
@@ -31,13 +32,14 @@ public class GamesController(
     private readonly IPublisherService _publisherService = publisherService;
     private readonly IOrderService _orderService = orderService;
     private readonly ICommentService _commentService = commentService;
+    private readonly IUnifiedGameCatalogService _unifiedGameCatalogService = unifiedGameCatalogService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<ActionResult<PagedGamesResponse>> GetGames([FromQuery] GameQueryRequest request)
     {
         var parameters = _mapper.Map<GameQueryParams>(request);
-        var result = await _gameService.GetGamesAsync(parameters);
+        var result = await _unifiedGameCatalogService.GetGamesAsync(parameters);
 
         return Ok(_mapper.Map<PagedGamesResponse>(result));
     }

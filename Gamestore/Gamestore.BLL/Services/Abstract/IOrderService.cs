@@ -12,6 +12,8 @@ public interface IOrderService
 
     Task<IEnumerable<OrderDto>> GetOrdersAsync();
 
+    Task<IEnumerable<OrderDto>> GetOrderHistoryAsync(DateTime? start, DateTime? end);
+
     Task<OrderDto> GetOrderByIdAsync(Guid id);
 
     Task<IEnumerable<OrderGameDto>> GetOrderDetailsAsync(Guid orderId);

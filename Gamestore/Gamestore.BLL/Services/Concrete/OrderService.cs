@@ -1,6 +1,10 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Abstract;
+using Gamestore.DAL.Mongo.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Constants;
 using Gamestore.Domain.Entities;
@@ -10,7 +14,11 @@ using Microsoft.Extensions.Configuration;
 
 namespace Gamestore.BLL.Services.Concrete;
 
-public class OrderService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration) : IOrderService
+public class OrderService(
+    IUnitOfWork unitOfWork,
+    IMapper mapper,
+    IConfiguration configuration,
+    INorthwindOrderRepository? northwindOrderRepository = null) : IOrderService
 {
     // The payment microservice validates the IBox account number against its
     // seeded account.json. Keep the development customer aligned with that
@@ -18,6 +26,8 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration
     private readonly Guid _stubCustomerId =
         configuration.GetValue<Guid?>("Customer:StubId")
         ?? Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+
+    private readonly INorthwindOrderRepository? _northwindOrderRepository = northwindOrderRepository;
 
     public async Task AddToCartAsync(string gameKey)
     {
@@ -93,6 +103,33 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration
             .GetByStatusesAsync(OrderStatus.Paid, OrderStatus.Cancelled);
 
         return mapper.Map<IEnumerable<OrderDto>>(orders);
+    }
+
+    public async Task<IEnumerable<OrderDto>> GetOrderHistoryAsync(DateTime? start, DateTime? end)
+    {
+        var sqlOrders = await unitOfWork.Orders
+            .GetByStatusesAsync(OrderStatus.Paid, OrderStatus.Cancelled);
+
+        var history = sqlOrders
+            .Select(mapper.Map<OrderDto>)
+            .Where(order => IsWithinDateRange(order.Date, start, end))
+            .ToList();
+
+        if (_northwindOrderRepository != null)
+        {
+            // Read operations use the Mongo IQueryable repository. Invalid or incomplete
+            // Northwind records are ignored so one damaged document does not break history.
+            var northwindOrders = _northwindOrderRepository.Query().ToList();
+
+            history.AddRange(northwindOrders
+                .Select(MapNorthwindOrder)
+                .Where(order => order != null)
+                .Select(order => order!)
+                .Where(order => IsWithinDateRange(order.Date, start, end)));
+        }
+
+        return [.. history
+            .OrderByDescending(order => order.Date ?? DateTime.MinValue)];
     }
 
     public async Task<OrderDto> GetOrderByIdAsync(Guid id)
@@ -210,5 +247,47 @@ public class OrderService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration
         await unitOfWork.Orders.AddAsync(order);
         await unitOfWork.SaveChangesAsync();
         return order;
+    }
+
+    private static OrderDto? MapNorthwindOrder(
+        Gamestore.DAL.Mongo.Documents.NorthwindOrderDocument order)
+    {
+        var orderKey = order.OrderId.HasValue
+            ? order.OrderId.Value.ToString(CultureInfo.InvariantCulture)
+            : order.Id.ToString();
+
+        DateTime? date = null;
+        if (!string.IsNullOrWhiteSpace(order.OrderDate)
+            && DateTime.TryParse(
+                order.OrderDate,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces,
+                out var parsedDate))
+        {
+            date = parsedDate;
+        }
+
+        return new OrderDto
+        {
+            Id = CreateStableGuid($"northwind-order:{orderKey}"),
+            CustomerId = string.IsNullOrWhiteSpace(order.CustomerId)
+                ? Guid.Empty
+                : CreateStableGuid($"northwind-customer:{order.CustomerId.Trim()}"),
+            Date = date,
+        };
+    }
+
+    private static bool IsWithinDateRange(DateTime? date, DateTime? start, DateTime? end)
+    {
+        return date.HasValue
+            ? (!start.HasValue || date.Value >= start.Value)
+                && (!end.HasValue || date.Value <= end.Value)
+            : !start.HasValue && !end.HasValue;
+    }
+
+    private static Guid CreateStableGuid(string value)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+        return new Guid(hash[..16]);
     }
 }
