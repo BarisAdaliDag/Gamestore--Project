@@ -1,6 +1,7 @@
 using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Concrete;
+using Gamestore.DAL.Mongo.Repositories.Abstract;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Entities;
@@ -215,6 +216,46 @@ public class OrderServiceTests
         Assert.NotNull(order.Date);
         _mockOrderRepository.Verify(repository => repository.Update(order), Times.Once);
         _mockUnitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task MarkOrderAsPaidAsyncShouldSynchronizeMongoProductStock()
+    {
+        var game = CreateGame(stock: 5);
+        game.Key = "mongo-507f1f77bcf86cd799439011";
+
+        var order = CreateOpenOrder();
+        order.Status = OrderStatus.Checkout;
+        order.OrderGames.Add(new OrderGame
+        {
+            OrderId = order.Id,
+            ProductId = game.Id,
+            Quantity = 2,
+            Game = game,
+        });
+
+        var mongoProductRepository = new Mock<INorthwindProductRepository>();
+        mongoProductRepository
+            .Setup(repository => repository.DecrementStockAsync(game.Key, 2))
+            .ReturnsAsync(true);
+        _mockOrderRepository.Setup(repository => repository.GetByIdAsync(order.Id))
+            .ReturnsAsync(order);
+        _mockOrderRepository.Setup(repository => repository.GetByIdWithDetailsAsync(order.Id))
+            .ReturnsAsync(order);
+
+        var service = new OrderService(
+            _mockUnitOfWork.Object,
+            _mockMapper.Object,
+            new ConfigurationBuilder().Build(),
+            northwindProductRepository: mongoProductRepository.Object);
+
+        await service.MarkOrderAsPaidAsync(order.Id);
+
+        Assert.Equal(3, game.UnitInStock);
+        mongoProductRepository.Verify(
+            repository => repository.DecrementStockAsync(game.Key, 2),
+            Times.Once);
+        _mockGameRepository.Verify(repository => repository.Update(game), Times.Once);
     }
 
     [Fact]
