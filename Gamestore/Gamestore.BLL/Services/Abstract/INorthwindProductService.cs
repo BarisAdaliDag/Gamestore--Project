@@ -11,4 +11,6 @@ public interface INorthwindProductService
     Task<GameDto?> GetByKeyAsync(string key);
 
     Task<GameDto?> GetByIdAsync(Guid id);
+
+    Task<NorthwindGameCatalogItem?> GetCatalogItemByKeyAsync(string key);
 }

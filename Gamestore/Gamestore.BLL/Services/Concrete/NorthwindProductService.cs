@@ -88,6 +88,17 @@ public sealed class NorthwindProductService(
         return MapToGame(product);
     }
 
+    public Task<NorthwindGameCatalogItem?> GetCatalogItemByKeyAsync(string key)
+    {
+        var item = GetAllWithReferences()
+            .FirstOrDefault(item => string.Equals(
+                item.Game.Key,
+                key,
+                StringComparison.OrdinalIgnoreCase));
+
+        return Task.FromResult(item);
+    }
+
     private static bool IsUsable(NorthwindProductDocument product)
     {
         return product.Id != MongoDB.Bson.ObjectId.Empty
