@@ -3,7 +3,7 @@ using MongoDB.Bson;
 namespace Gamestore.DAL.Mongo;
 
 /// <summary>
-/// Inserts audit records as raw BSON documents, as required by Epic 8 NFR3.
+/// Inserts audit records with MongoDB's raw insert command, as required by Epic 8 NFR3.
 /// </summary>
 public sealed class MongoEntityChangeLogWriter(IMongoDbContext mongoDbContext)
     : IEntityChangeLogWriter
@@ -28,8 +28,13 @@ public sealed class MongoEntityChangeLogWriter(IMongoDbContext mongoDbContext)
             ["newVersion"] = newVersion is null ? BsonNull.Value : newVersion,
         };
 
-        return mongoDbContext.Database
-            .GetCollection<BsonDocument>(CollectionName)
-            .InsertOneAsync(rawDocument);
+        var command = new BsonDocument
+        {
+            ["insert"] = CollectionName,
+            ["documents"] = new BsonArray { rawDocument },
+            ["ordered"] = true,
+        };
+
+        return mongoDbContext.Database.RunCommandAsync<BsonDocument>(command);
     }
 }
