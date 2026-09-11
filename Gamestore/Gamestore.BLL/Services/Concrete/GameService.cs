@@ -248,6 +248,8 @@ public class GameService(
             ?? await GetMongoGameCopyAsync(dto.Game.Key)
             ?? throw new NotFoundException(nameof(Game), dto.Game.Id);
 
+        ValidateGameKeyNamespace(game.Key, dto.Game.Key);
+
         var keyOwner = await UnitOfWork.Games.GetByKeyAsync(dto.Game.Key);
         if (keyOwner != null && keyOwner.Id != game.Id)
         {
@@ -312,6 +314,7 @@ public class GameService(
     public async Task<(byte[] FileBytes, string FileName)> GenerateGameFileAsync(string key)
     {
         var game = await UnitOfWork.Games.GetByKeyAsync(key)
+            ?? await GetMongoGameCopyAsync(key)
             ?? throw new NotFoundException(nameof(Game), key);
 
         var dto = Mapper.Map<GameDto>(game);
@@ -337,6 +340,25 @@ public class GameService(
     private static bool IsMongoGameKey(string key)
     {
         return key.StartsWith("mongo-", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ValidateGameKeyNamespace(string currentKey, string requestedKey)
+    {
+        if (IsMongoGameKey(currentKey))
+        {
+            if (!string.Equals(currentKey, requestedKey, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ValidationException("A Northwind product key cannot be changed.");
+            }
+
+            return;
+        }
+
+        if (IsMongoGameKey(requestedKey))
+        {
+            throw new ValidationException(
+                "The 'mongo-' key prefix is reserved for Northwind products.");
+        }
     }
 
     private static bool IsGenreMatch(

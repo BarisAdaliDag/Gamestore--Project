@@ -2,11 +2,13 @@ using System.Linq.Expressions;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Filtering;
+using Gamestore.BLL.Services.Abstract;
 using Gamestore.BLL.Services.Concrete;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Gamestore.Tests.Services;
@@ -314,6 +316,35 @@ public class GameServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsyncShouldRejectMongoKeyForSqlGame()
+    {
+        var gameId = Guid.NewGuid();
+        var game = new Game { Id = gameId, Name = "SQL Game", Key = "sql-game" };
+        var dto = new UpdateGameDto
+        {
+            Game = new GameUpdateInfoDto
+            {
+                Id = gameId,
+                Name = game.Name,
+                Key = "mongo-reserved-key",
+            },
+            Genres = [],
+            Platforms = [],
+        };
+        var gameRepository = new Mock<IGameRepository>();
+        gameRepository.Setup(repository => repository.GetByIdWithDetailsAsync(gameId))
+            .ReturnsAsync(game);
+        var unitOfWork = new Mock<IUnitOfWork>();
+        unitOfWork.Setup(work => work.Games).Returns(gameRepository.Object);
+        var service = new GameService(unitOfWork.Object, Mock.Of<IMapper>(), EmptyPipeline);
+
+        await Assert.ThrowsAsync<ValidationException>(() => service.UpdateAsync(dto));
+
+        gameRepository.Verify(repository => repository.Update(It.IsAny<Game>()), Times.Never);
+        unitOfWork.Verify(work => work.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
     public async Task CreateAsyncShouldThrowEntityAlreadyExistsExceptionWhenKeyAlreadyExists()
     {
         var dto = new CreateGameDto
@@ -454,6 +485,36 @@ public class GameServiceTests
         Assert.NotEmpty(fileBytes);
         Assert.StartsWith("Halo_", fileName, StringComparison.Ordinal);
         Assert.EndsWith(".txt", fileName, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GenerateGameFileAsyncShouldMaterializeNorthwindGame()
+    {
+        const string key = "mongo-6aa2818e248131f557d44243";
+        var game = new Game { Id = Guid.NewGuid(), Name = "Chef Anton's Gumbo Mix", Key = key };
+        var gameDto = new GameDto { Id = game.Id, Name = game.Name, Key = key };
+        var gameRepository = new Mock<IGameRepository>();
+        gameRepository.Setup(repository => repository.GetByKeyAsync(key))
+            .ReturnsAsync((Game?)null);
+        var unitOfWork = new Mock<IUnitOfWork>();
+        unitOfWork.Setup(work => work.Games).Returns(gameRepository.Object);
+        var materializationService = new Mock<IGameMaterializationService>();
+        materializationService.Setup(service => service.GetOrCreateAsync(key))
+            .ReturnsAsync(game);
+        var mapper = new Mock<IMapper>();
+        mapper.Setup(instance => instance.Map<GameDto>(game)).Returns(gameDto);
+        var service = new GameService(
+            unitOfWork.Object,
+            mapper.Object,
+            EmptyPipeline,
+            Mock.Of<ILogger<GameService>>(),
+            materializationService.Object);
+
+        var (fileBytes, fileName) = await service.GenerateGameFileAsync(key);
+
+        Assert.NotEmpty(fileBytes);
+        Assert.StartsWith("Chef Anton's Gumbo Mix_", fileName, StringComparison.Ordinal);
+        materializationService.Verify(service => service.GetOrCreateAsync(key), Times.Once);
     }
 
     [Fact]

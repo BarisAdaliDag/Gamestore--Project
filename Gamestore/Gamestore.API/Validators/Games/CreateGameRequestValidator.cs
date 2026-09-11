@@ -21,7 +21,10 @@ public class CreateGameRequestValidator : AbstractValidator<CreateGameRequest>
 
             RuleFor(request => request.Game.Key)
                 .MaximumLength(100)
-                .WithMessage("Game key cannot exceed 100 characters.");
+                .WithMessage("Game key cannot exceed 100 characters.")
+                .Must(key => string.IsNullOrWhiteSpace(key)
+                    || !key.StartsWith("mongo-", StringComparison.OrdinalIgnoreCase))
+                .WithMessage("The 'mongo-' key prefix is reserved for Northwind products.");
 
             RuleFor(request => request.Game.Description)
                 .MaximumLength(2000)

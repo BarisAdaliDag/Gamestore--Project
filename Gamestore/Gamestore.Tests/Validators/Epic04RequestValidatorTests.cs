@@ -37,6 +37,28 @@ public class Epic04RequestValidatorTests
     }
 
     [Fact]
+    public async Task CreateGameValidatorShouldRejectReservedMongoKeyPrefix()
+    {
+        var request = new CreateGameRequest
+        {
+            Game = new GameCreateInfoRequest
+            {
+                Name = "SQL Game",
+                Key = "mongo-reserved-key",
+            },
+            Genres = [Guid.NewGuid()],
+            Platforms = [Guid.NewGuid()],
+            Publisher = Guid.NewGuid(),
+        };
+        var validator = new CreateGameRequestValidator();
+
+        var result = await validator.ValidateAsync(request);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.PropertyName == "Game.Key");
+    }
+
+    [Fact]
     public async Task UpdateGameValidatorShouldAcceptValidEpicFourFieldsAndRelations()
     {
         var request = new UpdateGameRequest

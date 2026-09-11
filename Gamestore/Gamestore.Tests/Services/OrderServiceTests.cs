@@ -1,6 +1,7 @@
 using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Concrete;
+using Gamestore.DAL.Mongo.Documents;
 using Gamestore.DAL.Mongo.Repositories.Abstract;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
@@ -199,6 +200,40 @@ public class OrderServiceTests
         var result = await _service.GetCartAsync();
 
         Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetOrderHistoryAsyncShouldIncludeNorthwindOrdersWithoutDateLimits()
+    {
+        _mockOrderRepository
+            .Setup(repository => repository.GetByStatusesAsync(It.IsAny<OrderStatus[]>()))
+            .ReturnsAsync([]);
+        var northwindOrders = new Mock<INorthwindOrderRepository>();
+        northwindOrders.Setup(repository => repository.Query())
+            .Returns(new[]
+            {
+                new NorthwindOrderDocument
+                {
+                    OrderId = 1,
+                    CustomerId = "ALFKI",
+                    OrderDate = "1997-01-01",
+                },
+                new NorthwindOrderDocument
+                {
+                    OrderId = 2,
+                    CustomerId = "BONAP",
+                    OrderDate = "1998-01-01",
+                },
+            }.AsQueryable());
+        var service = new OrderService(
+            _mockUnitOfWork.Object,
+            _mockMapper.Object,
+            new ConfigurationBuilder().Build(),
+            northwindOrders.Object);
+
+        var result = await service.GetOrderHistoryAsync(null, null);
+
+        Assert.Equal(2, result.Count());
     }
 
     [Fact]

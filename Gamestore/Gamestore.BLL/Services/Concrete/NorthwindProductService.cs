@@ -148,6 +148,7 @@ public sealed class NorthwindProductService(
                     && categories.TryGetValue(product.CategoryId.Value, out var categoryName)
                     ? categoryName
                     : null,
+                ViewCount = Math.Max(product.ViewCount ?? 0, 0),
             })];
     }
 

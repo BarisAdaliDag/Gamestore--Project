@@ -184,7 +184,7 @@ public sealed class UnifiedGameCatalogService(
             PublisherId = publisherId,
             GenreIds = genreId == Guid.Empty ? [] : [genreId],
             PlatformIds = [],
-            ViewCount = 0,
+            ViewCount = item.ViewCount,
             CommentCount = 0,
             CreatedAt = DateTime.MinValue,
         };

@@ -32,43 +32,33 @@ public sealed class GameMaterializationService(
 
     private async Task<Game?> MaterializeMongoGameAsync(string gameKey)
     {
+        var existingGame = await unitOfWork.Games.GetByKeyWithDetailsAsync(gameKey);
+        if (existingGame is not null)
+        {
+            return existingGame;
+        }
+
         var mongoItem = await northwindProductService.GetCatalogItemByKeyAsync(gameKey);
         if (mongoItem is null)
         {
-            return await unitOfWork.Games.GetByKeyAsync(gameKey);
+            return null;
         }
 
-        var game = await unitOfWork.Games.GetByKeyWithDetailsAsync(gameKey);
         var publisher = await GetOrCreatePublisherAsync(mongoItem.SupplierName);
         var genre = await GetOrCreateGenreAsync(mongoItem.CategoryName);
-
-        if (game is null)
+        var game = new Game
         {
-            game = new Game
-            {
-                Id = mongoItem.Game.Id,
-                Name = mongoItem.Game.Name,
-                Key = mongoItem.Game.Key,
-                Description = mongoItem.Game.Description,
-                Price = mongoItem.Game.Price,
-                UnitInStock = mongoItem.Game.UnitInStock,
-                Discount = mongoItem.Game.Discount,
-                PublisherId = publisher.Id,
-            };
+            Id = mongoItem.Game.Id,
+            Name = mongoItem.Game.Name,
+            Key = mongoItem.Game.Key,
+            Description = mongoItem.Game.Description,
+            Price = mongoItem.Game.Price,
+            UnitInStock = mongoItem.Game.UnitInStock,
+            Discount = mongoItem.Game.Discount,
+            PublisherId = publisher.Id,
+        };
 
-            await unitOfWork.Games.AddAsync(game);
-        }
-        else
-        {
-            // The SQL copy is refreshed from Mongo. Mongo itself remains read-only here.
-            game.Name = mongoItem.Game.Name;
-            game.Description = mongoItem.Game.Description;
-            game.Price = mongoItem.Game.Price;
-            game.UnitInStock = mongoItem.Game.UnitInStock;
-            game.Discount = mongoItem.Game.Discount;
-            game.PublisherId = publisher.Id;
-            game.GameGenres.Clear();
-        }
+        await unitOfWork.Games.AddAsync(game);
 
         if (genre is not null)
         {
