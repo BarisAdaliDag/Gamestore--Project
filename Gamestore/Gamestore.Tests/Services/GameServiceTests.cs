@@ -439,6 +439,32 @@ public class GameServiceTests
     }
 
     [Fact]
+    public async Task DeleteByKeyAsyncShouldSoftDeleteNorthwindGame()
+    {
+        const string key = "mongo-6aa2818e248131f557d44243";
+        var game = new Game { Id = Guid.NewGuid(), Name = "Gumbo Mix", Key = key };
+        var gameRepository = new Mock<IGameRepository>();
+        gameRepository.Setup(repository => repository.GetByKeyAsync(key))
+            .ReturnsAsync(game);
+        var orderGames = new Mock<IRepository<OrderGame>>();
+        orderGames.Setup(repository => repository.FindAsync(
+                It.IsAny<Expression<Func<OrderGame, bool>>>()))
+            .ReturnsAsync([]);
+        var unitOfWork = new Mock<IUnitOfWork>();
+        unitOfWork.Setup(work => work.Games).Returns(gameRepository.Object);
+        unitOfWork.Setup(work => work.OrderGames).Returns(orderGames.Object);
+        unitOfWork.Setup(work => work.SaveChangesAsync()).ReturnsAsync(1);
+        var service = new GameService(unitOfWork.Object, Mock.Of<IMapper>(), EmptyPipeline);
+
+        await service.DeleteByKeyAsync(key);
+
+        Assert.True(game.IsDeleted);
+        gameRepository.Verify(repository => repository.Update(game), Times.Once);
+        gameRepository.Verify(repository => repository.Delete(It.IsAny<Game>()), Times.Never);
+        unitOfWork.Verify(work => work.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
     public async Task DeleteByKeyAsyncShouldThrowNotFoundExceptionWhenGameDoesNotExist()
     {
         var key = "missing-game";

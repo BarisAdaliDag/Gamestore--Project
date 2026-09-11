@@ -42,6 +42,10 @@ public class GameConfiguration : IEntityTypeConfiguration<Game>
             .IsRequired()
             .HasDefaultValue(0);
 
+        builder.Property(g => g.IsDeleted)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.HasOne(g => g.Publisher)
             .WithMany(p => p.Games)
             .HasForeignKey(g => g.PublisherId)

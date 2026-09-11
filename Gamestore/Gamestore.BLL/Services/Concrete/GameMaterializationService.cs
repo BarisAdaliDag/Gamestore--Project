@@ -38,6 +38,11 @@ public sealed class GameMaterializationService(
             return existingGame;
         }
 
+        if (await unitOfWork.Games.IsDeletedAsync(gameKey))
+        {
+            return null;
+        }
+
         var mongoItem = await northwindProductService.GetCatalogItemByKeyAsync(gameKey);
         if (mongoItem is null)
         {

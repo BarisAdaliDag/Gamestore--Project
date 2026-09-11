@@ -305,7 +305,16 @@ public class GameService(
             throw new EntityInUseException(nameof(Game), key);
         }
 
-        UnitOfWork.Games.Delete(game);
+        if (IsMongoGameKey(game.Key))
+        {
+            game.IsDeleted = true;
+            UnitOfWork.Games.Update(game);
+        }
+        else
+        {
+            UnitOfWork.Games.Delete(game);
+        }
+
         await UnitOfWork.SaveChangesAsync();
 
         _logger.LogInformation("Game deleted: {Key}", key);

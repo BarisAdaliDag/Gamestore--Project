@@ -9,13 +9,26 @@ public class GameRepository(GamestoreDbContext context) : Repository<Game>(conte
 {
     public IQueryable<Game> Query()
     {
-        return DbSet.AsNoTracking();
+        return DbSet
+            .AsNoTracking()
+            .Where(game => !game.IsDeleted);
+    }
+
+    public new Task<int> CountAsync()
+    {
+        return DbSet.CountAsync(game => !game.IsDeleted);
+    }
+
+    public new Task<Game?> GetByIdAsync(Guid id)
+    {
+        return DbSet.FirstOrDefaultAsync(game => game.Id == id && !game.IsDeleted);
     }
 
     public async Task<IEnumerable<Game>> GetAllWithDetailsAsync()
     {
         return await DbSet
             .AsNoTracking()
+            .Where(game => !game.IsDeleted)
             .Include(game => game.GameGenres)
             .Include(game => game.GamePlatforms)
             .Include(game => game.Comments)
@@ -24,7 +37,27 @@ public class GameRepository(GamestoreDbContext context) : Repository<Game>(conte
 
     public async Task<Game?> GetByKeyAsync(string key)
     {
-        return await DbSet.FirstOrDefaultAsync(g => g.Key == key);
+        return await DbSet.FirstOrDefaultAsync(g => g.Key == key && !g.IsDeleted);
+    }
+
+    public Task<bool> IsDeletedAsync(string key)
+    {
+        return DbSet.AnyAsync(game => game.Key == key && game.IsDeleted);
+    }
+
+    public Task<bool> IsDeletedAsync(Guid id)
+    {
+        return DbSet.AnyAsync(game => game.Id == id && game.IsDeleted);
+    }
+
+    public async Task<IReadOnlyCollection<string>> GetDeletedNorthwindKeysAsync()
+    {
+        return await DbSet
+            .AsNoTracking()
+            .Where(game => game.IsDeleted
+                && game.Key.StartsWith("mongo-"))
+            .Select(game => game.Key)
+            .ToListAsync();
     }
 
     public Task IncrementViewCountAsync(Guid gameId)
@@ -39,6 +72,7 @@ public class GameRepository(GamestoreDbContext context) : Repository<Game>(conte
     public async Task<Game?> GetByIdWithDetailsAsync(Guid id)
     {
         return await DbSet
+            .Where(game => !game.IsDeleted)
             .Include(g => g.GameGenres)
             .Include(g => g.GamePlatforms)
             .FirstOrDefaultAsync(g => g.Id == id);
@@ -47,6 +81,7 @@ public class GameRepository(GamestoreDbContext context) : Repository<Game>(conte
     public async Task<Game?> GetByKeyWithDetailsAsync(string key)
     {
         return await DbSet
+            .Where(game => !game.IsDeleted)
             .Include(g => g.GameGenres)
             .Include(g => g.GamePlatforms)
             .FirstOrDefaultAsync(g => g.Key == key);
@@ -59,7 +94,9 @@ public class GameRepository(GamestoreDbContext context) : Repository<Game>(conte
         Guid? genreId = null,
         Guid? platformId = null)
     {
-        var query = DbSet.AsNoTracking().AsQueryable();
+        var query = DbSet
+            .AsNoTracking()
+            .Where(game => !game.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(name))
         {
@@ -90,21 +127,25 @@ public class GameRepository(GamestoreDbContext context) : Repository<Game>(conte
     public async Task<IEnumerable<Game>> GetByGenreIdAsync(Guid genreId)
     {
         return await DbSet
-            .Where(g => g.GameGenres.Any(gg => gg.GenreId == genreId))
+            .Where(g => !g.IsDeleted
+                && g.GameGenres.Any(gg => gg.GenreId == genreId))
             .ToListAsync();
     }
 
     public async Task<IEnumerable<Game>> GetByPlatformIdAsync(Guid platformId)
     {
         return await DbSet
-            .Where(g => g.GamePlatforms.Any(gp => gp.PlatformId == platformId))
+            .Where(g => !g.IsDeleted
+                && g.GamePlatforms.Any(gp => gp.PlatformId == platformId))
             .ToListAsync();
     }
 
     public async Task<IEnumerable<Game>> GetByPublisherNameAsync(string companyName)
     {
         return await DbSet
-            .Where(g => g.Publisher != null && g.Publisher.CompanyName == companyName)
+            .Where(g => !g.IsDeleted
+                && g.Publisher != null
+                && g.Publisher.CompanyName == companyName)
             .ToListAsync();
     }
 }

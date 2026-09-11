@@ -51,13 +51,34 @@ public class UnifiedGameCatalogServiceTests
         Assert.Equal("mongo-game", result.Games.First().Key);
     }
 
+    [Fact]
+    public async Task GetGamesAsyncShouldHideDeletedNorthwindGame()
+    {
+        const string deletedKey = "mongo-deleted-game";
+        var sqlGame = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "SQL Game",
+            Key = "sql-game",
+        };
+        var mongoItem = CreateMongoItem("Deleted Mongo Game", deletedKey, viewCount: 0);
+        var service = CreateService(sqlGame, mongoItem, [deletedKey]);
+
+        var result = await service.GetGamesAsync(new GameQueryParams { PageCount = "all" });
+
+        Assert.DoesNotContain(result.Games, game => game.Key == deletedKey);
+    }
+
     private static UnifiedGameCatalogService CreateService(
         Game sqlGame,
-        NorthwindGameCatalogItem mongoItem)
+        NorthwindGameCatalogItem mongoItem,
+        IReadOnlyCollection<string>? deletedNorthwindKeys = null)
     {
         var games = new Mock<IGameRepository>();
         games.Setup(repository => repository.GetAllWithDetailsAsync())
             .ReturnsAsync([sqlGame]);
+        games.Setup(repository => repository.GetDeletedNorthwindKeysAsync())
+            .ReturnsAsync(deletedNorthwindKeys ?? []);
         var publishers = new Mock<IPublisherRepository>();
         publishers.Setup(repository => repository.GetAllAsync())
             .ReturnsAsync([]);

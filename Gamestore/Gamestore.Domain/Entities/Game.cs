@@ -20,6 +20,8 @@ public class Game
 
     public int ViewCount { get; set; }
 
+    public bool IsDeleted { get; set; }
+
     public Guid PublisherId { get; set; }
 
     public Publisher? Publisher { get; set; }

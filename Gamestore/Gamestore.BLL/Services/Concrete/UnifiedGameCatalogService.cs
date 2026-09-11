@@ -28,6 +28,8 @@ public sealed class UnifiedGameCatalogService(
             .Select(item => item.Game.Key)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        sqlKeys.UnionWith(await unitOfWork.Games.GetDeletedNorthwindKeysAsync());
+
         var sqlPublisherIds = (await unitOfWork.Publishers.GetAllAsync())
             .ToDictionary(
                 publisher => NorthwindReferenceIdentity.Normalize(publisher.CompanyName),
@@ -127,6 +129,11 @@ public sealed class UnifiedGameCatalogService(
             return mapper.Map<GameDto>(sqlGame);
         }
 
+        if (await unitOfWork.Games.IsDeletedAsync(key))
+        {
+            throw new NotFoundException(nameof(Game), key);
+        }
+
         var mongoGame = await northwindProductService.GetByKeyAsync(key);
         return mongoGame
             ?? throw new NotFoundException(nameof(Game), key);
@@ -138,6 +145,11 @@ public sealed class UnifiedGameCatalogService(
         if (sqlGame is not null)
         {
             return mapper.Map<GameDto>(sqlGame);
+        }
+
+        if (await unitOfWork.Games.IsDeletedAsync(id))
+        {
+            throw new NotFoundException(nameof(Game), id);
         }
 
         var mongoGame = await northwindProductService.GetByIdAsync(id);

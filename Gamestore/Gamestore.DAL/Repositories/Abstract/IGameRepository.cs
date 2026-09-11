@@ -12,7 +12,17 @@ public interface IGameRepository : IRepository<Game>
 
     Task<IEnumerable<Game>> GetAllWithDetailsAsync();
 
+    new Task<int> CountAsync();
+
+    new Task<Game?> GetByIdAsync(Guid id);
+
     Task<Game?> GetByKeyAsync(string key);
+
+    Task<bool> IsDeletedAsync(string key);
+
+    Task<bool> IsDeletedAsync(Guid id);
+
+    Task<IReadOnlyCollection<string>> GetDeletedNorthwindKeysAsync();
 
     Task IncrementViewCountAsync(Guid gameId);
 
