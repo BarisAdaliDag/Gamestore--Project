@@ -138,7 +138,7 @@ public class PublisherService(
     {
         return _supplierRepository?
             .Query()
-            .ToList()
+            .AsEnumerable()
             .Where(supplier => !string.IsNullOrWhiteSpace(supplier.CompanyName))
             .GroupBy(supplier => NorthwindReferenceIdentity.Normalize(supplier.CompanyName!))
             .Select(group => group.First())
@@ -152,7 +152,7 @@ public class PublisherService(
     {
         var supplier = _supplierRepository?
             .Query()
-            .ToList()
+            .AsEnumerable()
             .Where(item => !string.IsNullOrWhiteSpace(item.CompanyName))
             .FirstOrDefault(item => NorthwindReferenceIdentity.CreateSupplierId(item.CompanyName!) == id);
 

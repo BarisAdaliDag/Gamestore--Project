@@ -158,7 +158,7 @@ public class GenreService(
     {
         var category = _categoryRepository?
             .Query()
-            .ToList()
+            .AsEnumerable()
             .Where(item => !string.IsNullOrWhiteSpace(item.CategoryName))
             .FirstOrDefault(item => NorthwindReferenceIdentity.CreateCategoryId(item.CategoryName!) == id);
 

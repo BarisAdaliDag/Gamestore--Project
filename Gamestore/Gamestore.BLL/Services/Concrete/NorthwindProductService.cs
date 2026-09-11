@@ -20,7 +20,7 @@ public sealed class NorthwindProductService(
     {
         var suppliers = supplierRepository
             .Query()
-            .ToList()
+            .AsEnumerable()
             .Where(supplier => supplier.SupplierId.HasValue
                 && !string.IsNullOrWhiteSpace(supplier.CompanyName))
             .GroupBy(supplier => supplier.SupplierId!.Value)
@@ -28,7 +28,7 @@ public sealed class NorthwindProductService(
 
         var categories = categoryRepository
             .Query()
-            .ToList()
+            .AsEnumerable()
             .Where(category => category.CategoryId.HasValue
                 && !string.IsNullOrWhiteSpace(category.CategoryName))
             .GroupBy(category => category.CategoryId!.Value)
@@ -46,7 +46,7 @@ public sealed class NorthwindProductService(
     {
         var suppliers = supplierRepository
             .Query()
-            .ToList()
+            .AsEnumerable()
             .Where(supplier => supplier.SupplierId.HasValue
                 && !string.IsNullOrWhiteSpace(supplier.CompanyName))
             .GroupBy(supplier => supplier.SupplierId!.Value)
@@ -54,7 +54,7 @@ public sealed class NorthwindProductService(
 
         var categories = categoryRepository
             .Query()
-            .ToList()
+            .AsEnumerable()
             .Where(category => category.CategoryId.HasValue
                 && !string.IsNullOrWhiteSpace(category.CategoryName))
             .GroupBy(category => category.CategoryId!.Value)
@@ -62,7 +62,7 @@ public sealed class NorthwindProductService(
 
         var products = productRepository
             .Query()
-            .ToList()
+            .AsEnumerable()
             .Where(IsUsable)
             .ToList();
 
@@ -81,7 +81,7 @@ public sealed class NorthwindProductService(
     {
         var product = productRepository
             .Query()
-            .ToList()
+            .AsEnumerable()
             .FirstOrDefault(product => string.Equals(
                 GetGameKey(product),
                 key,
@@ -103,7 +103,7 @@ public sealed class NorthwindProductService(
     {
         var product = productRepository
             .Query()
-            .ToList()
+            .AsEnumerable()
             .FirstOrDefault(product => IsUsable(product)
                 && CreateStableId(product.Id) == id);
 

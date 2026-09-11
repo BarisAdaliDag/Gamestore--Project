@@ -5,8 +5,6 @@ namespace Gamestore.DAL.Mongo;
 
 public sealed class MongoDbContext : IMongoDbContext
 {
-    private readonly MongoClient _client;
-
     public MongoDbContext(IConfiguration configuration)
     {
         var connectionString = configuration["MongoDb:ConnectionString"];
@@ -27,8 +25,8 @@ public sealed class MongoDbContext : IMongoDbContext
         var clientSettings = MongoClientSettings.FromConnectionString(connectionString);
         clientSettings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
 
-        _client = new MongoClient(clientSettings);
-        Database = _client.GetDatabase(databaseName);
+        var client = new MongoClient(clientSettings);
+        Database = client.GetDatabase(databaseName);
     }
 
     public IMongoDatabase Database { get; }

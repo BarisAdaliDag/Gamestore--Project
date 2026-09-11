@@ -26,7 +26,7 @@ public sealed class UnifiedReferenceService(
 
         var mongoSuppliers = supplierRepository
             .Query()
-            .ToList()
+            .AsEnumerable()
             .Where(supplier => !string.IsNullOrWhiteSpace(supplier.CompanyName))
             .GroupBy(supplier => NorthwindReferenceIdentity.Normalize(supplier.CompanyName!))
             .Select(group => group.First())
@@ -56,7 +56,7 @@ public sealed class UnifiedReferenceService(
 
         var mongoCategories = categoryRepository
             .Query()
-            .ToList()
+            .AsEnumerable()
             .Where(category => !string.IsNullOrWhiteSpace(category.CategoryName))
             .GroupBy(category => NorthwindReferenceIdentity.Normalize(category.CategoryName!))
             .Select(group => group.First())

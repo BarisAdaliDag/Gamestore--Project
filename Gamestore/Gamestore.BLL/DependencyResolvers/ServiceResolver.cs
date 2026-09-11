@@ -13,6 +13,7 @@ public static class ServiceResolver
     {
         services.AddScoped<IGameService, GameService>();
         services.AddScoped<IUnifiedGameCatalogService, UnifiedGameCatalogService>();
+        services.AddScoped<IGameLookupService, GameLookupService>();
         services.AddScoped<IUnifiedReferenceService, UnifiedReferenceService>();
         services.AddScoped<IGameMaterializationService, GameMaterializationService>();
         services.AddScoped<INorthwindProductService, NorthwindProductService>();

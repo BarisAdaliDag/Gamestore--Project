@@ -18,30 +18,22 @@ namespace Gamestore.API.Controllers;
 [Route("[controller]")]
 public class GamesController(
     IGameService gameService,
-    IGenreService genreService,
-    IPlatformService platformService,
-    IPublisherService publisherService,
     IOrderService orderService,
     ICommentService commentService,
-    IUnifiedGameCatalogService unifiedGameCatalogService,
-    IGameMaterializationService gameMaterializationService,
+    IGameLookupService gameLookupService,
     IMapper mapper) : ControllerBase
 {
     private readonly IGameService _gameService = gameService;
-    private readonly IGenreService _genreService = genreService;
-    private readonly IPlatformService _platformService = platformService;
-    private readonly IPublisherService _publisherService = publisherService;
     private readonly IOrderService _orderService = orderService;
     private readonly ICommentService _commentService = commentService;
-    private readonly IUnifiedGameCatalogService _unifiedGameCatalogService = unifiedGameCatalogService;
-    private readonly IGameMaterializationService _gameMaterializationService = gameMaterializationService;
+    private readonly IGameLookupService _gameLookupService = gameLookupService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<ActionResult<PagedGamesResponse>> GetGames([FromQuery] GameQueryRequest request)
     {
         var parameters = _mapper.Map<GameQueryParams>(request);
-        var result = await _unifiedGameCatalogService.GetGamesAsync(parameters);
+        var result = await _gameLookupService.GetGamesAsync(parameters);
 
         return Ok(_mapper.Map<PagedGamesResponse>(result));
     }
@@ -67,7 +59,7 @@ public class GamesController(
     [HttpGet("{key}")]
     public async Task<ActionResult<GameResponse>> GetByKey(string key)
     {
-        var dto = await _unifiedGameCatalogService.GetByKeyAsync(key);
+        var dto = await _gameLookupService.GetByKeyAsync(key);
         var response = _mapper.Map<GameResponse>(dto);
 
         return Ok(response);
@@ -76,8 +68,7 @@ public class GamesController(
     [HttpGet("{key}/publisher")]
     public async Task<ActionResult<PublisherResponse>> GetPublisherByGameKey(string key)
     {
-        await _gameMaterializationService.GetOrCreateAsync(key);
-        var dto = await _publisherService.GetByGameKeyAsync(key);
+        var dto = await _gameLookupService.GetPublisherByGameKeyAsync(key);
         var response = _mapper.Map<PublisherResponse>(dto);
 
         return Ok(response);
@@ -86,7 +77,7 @@ public class GamesController(
     [HttpGet("find/{id:guid}")]
     public async Task<ActionResult<GameResponse>> GetById(Guid id)
     {
-        var dto = await _unifiedGameCatalogService.GetByIdAsync(id);
+        var dto = await _gameLookupService.GetByIdAsync(id);
         var response = _mapper.Map<GameResponse>(dto);
 
         return Ok(response);
@@ -95,8 +86,7 @@ public class GamesController(
     [HttpGet("{key}/genres")]
     public async Task<ActionResult<IEnumerable<GenreResponse>>> GetGenresByGameKey(string key)
     {
-        await _gameMaterializationService.GetOrCreateAsync(key);
-        var dtos = await _genreService.GetByGameKeyAsync(key);
+        var dtos = await _gameLookupService.GetGenresByGameKeyAsync(key);
         var response = _mapper.Map<IEnumerable<GenreResponse>>(dtos);
 
         return Ok(response);
@@ -105,8 +95,7 @@ public class GamesController(
     [HttpGet("{key}/platforms")]
     public async Task<ActionResult<IEnumerable<PlatformResponse>>> GetPlatformsByGameKey(string key)
     {
-        await _gameMaterializationService.GetOrCreateAsync(key);
-        var dtos = await _platformService.GetByGameKeyAsync(key);
+        var dtos = await _gameLookupService.GetPlatformsByGameKeyAsync(key);
         var response = _mapper.Map<IEnumerable<PlatformResponse>>(dtos);
 
         return Ok(response);
