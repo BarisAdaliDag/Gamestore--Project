@@ -29,6 +29,7 @@ public static class ServiceResolver
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IPasswordHashService, PasswordHashService>();
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+        services.AddScoped<IUserAuthenticationService, UserAuthenticationService>();
 
         // Time abstraction (for PublishDateFilter)
         services.AddSingleton(TimeProvider.System);
