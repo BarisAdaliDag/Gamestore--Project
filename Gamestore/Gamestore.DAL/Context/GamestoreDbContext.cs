@@ -27,6 +27,12 @@ public class GamestoreDbContext(DbContextOptions<GamestoreDbContext> options) : 
 
     public DbSet<Ban> Bans { get; set; }
 
+    public DbSet<User> Users { get; set; }
+
+    public DbSet<Role> Roles { get; set; }
+
+    public DbSet<UserRole> UserRoles { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -41,6 +47,9 @@ public class GamestoreDbContext(DbContextOptions<GamestoreDbContext> options) : 
         modelBuilder.ApplyConfiguration(new GamePlatformConfiguration());
         modelBuilder.ApplyConfiguration(new CommentConfiguration());
         modelBuilder.ApplyConfiguration(new BanConfiguration());
+        modelBuilder.ApplyConfiguration(new UserConfiguration());
+        modelBuilder.ApplyConfiguration(new RoleConfiguration());
+        modelBuilder.ApplyConfiguration(new UserRoleConfiguration());
 
         DbSeeder.Seed(modelBuilder);
     }

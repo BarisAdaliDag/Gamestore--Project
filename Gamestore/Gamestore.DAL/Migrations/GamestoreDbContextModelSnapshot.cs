@@ -106,15 +106,15 @@ namespace Gamestore.DAL.Migrations
                     b.Property<int>("Discount")
                         .HasColumnType("int");
 
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -423,6 +423,86 @@ namespace Gamestore.DAL.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gamestore.Domain.Entities.Role", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Roles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("90000000-0000-0000-0000-000000000001"),
+                            Name = "Administrator"
+                        },
+                        new
+                        {
+                            Id = new Guid("90000000-0000-0000-0000-000000000002"),
+                            Name = "Manager"
+                        },
+                        new
+                        {
+                            Id = new Guid("90000000-0000-0000-0000-000000000003"),
+                            Name = "Moderator"
+                        },
+                        new
+                        {
+                            Id = new Guid("90000000-0000-0000-0000-000000000004"),
+                            Name = "User"
+                        });
+                });
+
+            modelBuilder.Entity("Gamestore.Domain.Entities.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("Gamestore.Domain.Entities.UserRole", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("UserRoles", (string)null);
+                });
+
             modelBuilder.Entity("Gamestore.Domain.Entities.Comment", b =>
                 {
                     b.HasOne("Gamestore.Domain.Entities.Game", "Game")
@@ -519,6 +599,25 @@ namespace Gamestore.DAL.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("Gamestore.Domain.Entities.UserRole", b =>
+                {
+                    b.HasOne("Gamestore.Domain.Entities.Role", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Gamestore.Domain.Entities.User", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Gamestore.Domain.Entities.Comment", b =>
                 {
                     b.Navigation("ChildComments");
@@ -555,6 +654,16 @@ namespace Gamestore.DAL.Migrations
             modelBuilder.Entity("Gamestore.Domain.Entities.Publisher", b =>
                 {
                     b.Navigation("Games");
+                });
+
+            modelBuilder.Entity("Gamestore.Domain.Entities.Role", b =>
+                {
+                    b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("Gamestore.Domain.Entities.User", b =>
+                {
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

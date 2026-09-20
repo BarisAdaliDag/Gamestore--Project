@@ -10,6 +10,32 @@ public static class DbSeeder
         SeedPublishers(modelBuilder);
         SeedPlatforms(modelBuilder);
         SeedGenres(modelBuilder);
+        SeedRoles(modelBuilder);
+    }
+
+    private static void SeedRoles(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Role>().HasData(
+            new Role
+            {
+                Id = Guid.Parse("90000000-0000-0000-0000-000000000001"),
+                Name = Gamestore.Domain.Constants.RoleNames.Administrator,
+            },
+            new Role
+            {
+                Id = Guid.Parse("90000000-0000-0000-0000-000000000002"),
+                Name = Gamestore.Domain.Constants.RoleNames.Manager,
+            },
+            new Role
+            {
+                Id = Guid.Parse("90000000-0000-0000-0000-000000000003"),
+                Name = Gamestore.Domain.Constants.RoleNames.Moderator,
+            },
+            new Role
+            {
+                Id = Guid.Parse("90000000-0000-0000-0000-000000000004"),
+                Name = Gamestore.Domain.Constants.RoleNames.User,
+            });
     }
 
     private static void SeedPublishers(ModelBuilder modelBuilder)
