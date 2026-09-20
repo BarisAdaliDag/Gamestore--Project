@@ -20,6 +20,21 @@ public static class AuthenticationResolver
             .AddJwtBearer(options =>
             {
                 options.MapInboundClaims = false;
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var authorizationHeader = context.Request.Headers.Authorization.ToString();
+
+                        if (!string.IsNullOrWhiteSpace(authorizationHeader)
+                            && !authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            context.Token = authorizationHeader.Trim();
+                        }
+
+                        return Task.CompletedTask;
+                    },
+                };
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
