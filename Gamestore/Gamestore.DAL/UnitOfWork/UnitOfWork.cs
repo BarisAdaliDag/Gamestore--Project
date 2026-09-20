@@ -148,6 +148,12 @@ public class UnitOfWork : IUnitOfWork
 
         foreach (var property in entry.Properties)
         {
+            if (entry.Metadata.ClrType == typeof(User)
+                && property.Metadata.Name == nameof(User.PasswordHash))
+            {
+                continue;
+            }
+
             var value = useOriginalValues
                 ? property.OriginalValue
                 : property.CurrentValue;

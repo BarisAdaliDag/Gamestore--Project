@@ -25,6 +25,7 @@ public static class ServiceResolver
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<ICommentService, CommentService>();
+        services.AddScoped<IDefaultAdministratorService, DefaultAdministratorService>();
         services.AddScoped<IPasswordHashService, PasswordHashService>();
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
