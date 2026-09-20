@@ -47,6 +47,7 @@ public static class Program
                 });
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddJwtAuthentication(builder.Configuration);
 
             builder.Services.AddHttpClient("PaymentService", client =>
             {
@@ -87,6 +88,7 @@ public static class Program
 
             app.UseHttpsRedirection();
             app.UseCors();
+            app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
 
