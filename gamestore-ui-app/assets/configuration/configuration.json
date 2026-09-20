@@ -1,7 +1,9 @@
 {
-  "baseApiUrl": "https://localhost:7091/",
+
+  "baseApiUrl": "https://localhost:7177/",
 
   "gamesAllApiUrl": "games/all",
+
   "getGameFileApiUrl": "games/{key}/file",
   "getPublishedDateOptionsApiUrl": "games/publish-date-options",
   "getSortingOptionsApiUrl": "games/sorting-options",
