@@ -3,6 +3,8 @@ using Gamestore.BLL.Filtering.Abstract;
 using Gamestore.BLL.Filtering.Filters;
 using Gamestore.BLL.Services.Abstract;
 using Gamestore.BLL.Services.Concrete;
+using Gamestore.Domain.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gamestore.BLL.DependencyResolvers;
@@ -23,6 +25,8 @@ public static class ServiceResolver
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<ICommentService, CommentService>();
+        services.AddScoped<IPasswordHashService, PasswordHashService>();
+        services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
         // Time abstraction (for PublishDateFilter)
         services.AddSingleton(TimeProvider.System);
