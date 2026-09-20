@@ -8,7 +8,10 @@ using MapsterMapper;
 
 namespace Gamestore.BLL.Services.Concrete;
 
-public class UserService(IUnitOfWork unitOfWork, IMapper mapper) : IUserService
+public class UserService(
+    IUnitOfWork unitOfWork,
+    IMapper mapper,
+    IPasswordHashService passwordHashService) : IUserService
 {
     public async Task<IEnumerable<UserDto>> GetAllAsync()
     {
@@ -33,5 +36,53 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper) : IUserService
             .Select(userRole => userRole.Role!);
 
         return mapper.Map<IEnumerable<RoleDto>>(roles);
+    }
+
+    public async Task<UserDto> CreateAsync(CreateUserDto dto)
+    {
+        var userName = dto.User.Name.Trim();
+        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(dto.Password))
+        {
+            throw new ValidationException("User name and password are required.");
+        }
+
+        var roleIds = dto.Roles.Distinct().ToList();
+        if (roleIds.Count == 0 || roleIds.Count != dto.Roles.Count)
+        {
+            throw new ValidationException("At least one unique role is required.");
+        }
+
+        var existingUser = await unitOfWork.Users.GetSingleAsync(user => user.Name == userName);
+        if (existingUser != null)
+        {
+            throw new EntityAlreadyExistsException(nameof(User), "name", userName);
+        }
+
+        var roles = (await unitOfWork.Roles.FindAsync(role => roleIds.Contains(role.Id))).ToList();
+        if (roles.Count != roleIds.Count)
+        {
+            throw new ValidationException("One or more selected roles do not exist.");
+        }
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Name = userName,
+            PasswordHash = string.Empty,
+        };
+        user.PasswordHash = passwordHashService.HashPassword(user, dto.Password);
+
+        await unitOfWork.Users.AddAsync(user);
+        foreach (var roleId in roleIds)
+        {
+            await unitOfWork.UserRoles.AddAsync(new UserRole
+            {
+                UserId = user.Id,
+                RoleId = roleId,
+            });
+        }
+
+        await unitOfWork.SaveChangesAsync();
+        return mapper.Map<UserDto>(user);
     }
 }

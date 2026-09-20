@@ -32,6 +32,7 @@ public static class ServiceResolver
         services.AddScoped<IUserAuthenticationService, UserAuthenticationService>();
         services.AddScoped<IPageAccessService, PageAccessService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IRoleService, RoleService>();
 
         // Time abstraction (for PublishDateFilter)
         services.AddSingleton(TimeProvider.System);

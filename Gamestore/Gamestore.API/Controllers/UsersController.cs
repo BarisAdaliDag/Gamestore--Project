@@ -44,6 +44,18 @@ public class UsersController(
         return Ok(mapper.Map<IEnumerable<RoleResponse>>(roles));
     }
 
+    [HttpPost]
+    [Authorize(Policy = AuthorizationPolicyNames.AdministratorOnly)]
+    [ServiceFilter(typeof(ValidationFilter<CreateUserRequest>))]
+    public async Task<ActionResult<UserResponse>> Create([FromBody] CreateUserRequest request)
+    {
+        var dto = mapper.Map<CreateUserDto>(request);
+        var user = await userService.CreateAsync(dto);
+        var response = mapper.Map<UserResponse>(user);
+
+        return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
+    }
+
     [AllowAnonymous]
     [HttpPost("login")]
     [ServiceFilter(typeof(ValidationFilter<LoginRequest>))]

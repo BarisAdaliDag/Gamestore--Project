@@ -88,6 +88,8 @@ public class VmMappingProfile : IRegister
 
         config.NewConfig<BanRequest, BanUserDto>();
         config.NewConfig<LoginModelRequest, LoginDto>();
+        config.NewConfig<CreateUserRequest, CreateUserDto>();
+        config.NewConfig<UserCreateInfoRequest, UserCreateInfoDto>();
         config.NewConfig<UserDto, UserResponse>();
         config.NewConfig<RoleDto, RoleResponse>();
 
