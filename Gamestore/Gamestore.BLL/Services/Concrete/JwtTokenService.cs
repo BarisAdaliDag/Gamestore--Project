@@ -49,7 +49,7 @@ public class JwtTokenService : IJwtTokenService
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.UniqueName, user.Name),
+            new(JwtClaimNames.UniqueName, user.Name),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 

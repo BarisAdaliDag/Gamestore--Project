@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Gamestore.API.Constants;
 using Gamestore.BLL.Constants;
@@ -49,7 +48,7 @@ public static class AuthenticationResolver
                     RequireExpirationTime = true,
                     RequireSignedTokens = true,
                     ClockSkew = TimeSpan.FromMinutes(1),
-                    NameClaimType = JwtRegisteredClaimNames.UniqueName,
+                    NameClaimType = JwtClaimNames.UniqueName,
                     RoleClaimType = JwtClaimNames.Role,
                 };
             });

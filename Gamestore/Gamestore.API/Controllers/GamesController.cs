@@ -158,7 +158,14 @@ public class GamesController(
     [ServiceFilter(typeof(ValidationFilter<CreateCommentRequest>))]
     public async Task<IActionResult> AddComment(string key, [FromBody] CreateCommentRequest request)
     {
+        var currentUserName = User.Identity?.Name;
+        if (string.IsNullOrWhiteSpace(currentUserName))
+        {
+            return Unauthorized();
+        }
+
         var dto = _mapper.Map<CreateCommentDto>(request);
+        dto.Comment.Name = currentUserName;
         await _commentService.AddAsync(key, dto);
         return Ok();
     }
