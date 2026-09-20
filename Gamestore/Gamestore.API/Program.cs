@@ -46,7 +46,7 @@ public static class Program
                     options.JsonSerializerOptions.MaxDepth = 256;
                 });
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerDocumentation();
             builder.Services.AddJwtAuthentication(builder.Configuration);
 
             builder.Services.AddHttpClient("PaymentService", client =>
