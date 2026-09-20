@@ -1,3 +1,4 @@
+using Gamestore.API.Constants;
 using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Orders;
 using Gamestore.API.Models.Responses.Orders;
@@ -5,6 +6,7 @@ using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.Services.Abstract;
 using Gamestore.Domain.Constants;
 using MapsterMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gamestore.API.Controllers;
@@ -17,6 +19,7 @@ public class OrdersController(
     IMapper mapper) : ControllerBase
 {
     [HttpGet("cart")]
+    [Authorize(Policy = AuthorizationPolicyNames.UserOrHigher)]
     public async Task<ActionResult<IEnumerable<OrderGameResponse>>> GetCart()
     {
         var dtos = await orderService.GetCartAsync();
@@ -24,6 +27,7 @@ public class OrdersController(
     }
 
     [HttpDelete("cart/{key}")]
+    [Authorize(Policy = AuthorizationPolicyNames.UserOrHigher)]
     public async Task<IActionResult> RemoveFromCart(string key)
     {
         await orderService.RemoveFromCartAsync(key);
@@ -31,6 +35,7 @@ public class OrdersController(
     }
 
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     public async Task<ActionResult<IEnumerable<OrderResponse>>> GetOrders()
     {
         var dtos = await orderService.GetOrdersAsync();
@@ -38,6 +43,7 @@ public class OrdersController(
     }
 
     [HttpGet("history")]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     public async Task<ActionResult<IEnumerable<OrderResponse>>> GetHistory(
         [FromQuery] DateTime? start,
         [FromQuery] DateTime? end)
@@ -47,6 +53,7 @@ public class OrdersController(
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     public async Task<ActionResult<OrderResponse>> GetOrderById(Guid id)
     {
         var dto = await orderService.GetOrderByIdAsync(id);
@@ -54,6 +61,7 @@ public class OrdersController(
     }
 
     [HttpGet("{id:guid}/details")]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     public async Task<ActionResult<IEnumerable<OrderGameResponse>>> GetOrderDetails(Guid id)
     {
         var dtos = await orderService.GetOrderDetailsAsync(id);
@@ -61,6 +69,7 @@ public class OrdersController(
     }
 
     [HttpGet("payment-methods")]
+    [Authorize(Policy = AuthorizationPolicyNames.UserOrHigher)]
     public async Task<ActionResult<PaymentMethodsResponse>> GetPaymentMethods()
     {
         var dtos = await orderService.GetPaymentMethodsAsync();
@@ -73,6 +82,7 @@ public class OrdersController(
     }
 
     [HttpPost("payment")]
+    [Authorize(Policy = AuthorizationPolicyNames.UserOrHigher)]
     [ServiceFilter(typeof(ValidationFilter<PaymentRequest>))]
     public async Task<IActionResult> ProcessPayment([FromBody] PaymentRequest request)
     {

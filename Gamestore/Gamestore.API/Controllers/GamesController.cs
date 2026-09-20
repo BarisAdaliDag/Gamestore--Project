@@ -1,3 +1,4 @@
+using Gamestore.API.Constants;
 using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Comments;
 using Gamestore.API.Models.Requests.Games;
@@ -10,6 +11,7 @@ using Gamestore.BLL.DTOs.Comments;
 using Gamestore.BLL.DTOs.Games;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gamestore.API.Controllers;
@@ -110,6 +112,7 @@ public class GamesController(
     }
 
     [HttpPost("{key}/buy")]
+    [Authorize(Policy = AuthorizationPolicyNames.UserOrHigher)]
     public async Task<IActionResult> AddToCart(string key)
     {
         await _orderService.AddToCartAsync(key);
@@ -117,6 +120,7 @@ public class GamesController(
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     [ServiceFilter(typeof(ValidationFilter<CreateGameRequest>))]
     public async Task<ActionResult<GameResponse>> Create([FromBody] CreateGameRequest request)
     {
@@ -128,6 +132,7 @@ public class GamesController(
     }
 
     [HttpPut]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     [ServiceFilter(typeof(ValidationFilter<UpdateGameRequest>))]
     public async Task<ActionResult<GameResponse>> Update([FromBody] UpdateGameRequest request)
     {
@@ -139,6 +144,7 @@ public class GamesController(
     }
 
     [HttpDelete("{key}")]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     public async Task<IActionResult> Delete(string key)
     {
         await _gameService.DeleteByKeyAsync(key);
@@ -148,6 +154,7 @@ public class GamesController(
 
     /// <summary>Adds a comment (or reply/quote) to a game.</summary>
     [HttpPost("{key}/comments")]
+    [Authorize(Policy = AuthorizationPolicyNames.UserOrHigher)]
     [ServiceFilter(typeof(ValidationFilter<CreateCommentRequest>))]
     public async Task<IActionResult> AddComment(string key, [FromBody] CreateCommentRequest request)
     {
@@ -166,6 +173,7 @@ public class GamesController(
 
     /// <summary>Soft-deletes a comment. Child comments are preserved.</summary>
     [HttpDelete("{key}/comments/{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicyNames.ModeratorOrHigher)]
     public async Task<IActionResult> DeleteComment(string key, Guid id)
     {
         await _commentService.DeleteAsync(key, id);

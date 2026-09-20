@@ -1,3 +1,4 @@
+using Gamestore.API.Constants;
 using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests;
 using Gamestore.API.Models.Requests.Platforms;
@@ -8,6 +9,7 @@ using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Platforms;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gamestore.API.Controllers;
@@ -68,6 +70,7 @@ public class PlatformsController(
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     [ServiceFilter(typeof(ValidationFilter<CreatePlatformRequest>))]
     public async Task<ActionResult<PlatformResponse>> Create([FromBody] CreatePlatformRequest request)
     {
@@ -79,6 +82,7 @@ public class PlatformsController(
     }
 
     [HttpPut]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     [ServiceFilter(typeof(ValidationFilter<UpdatePlatformRequest>))]
     public async Task<ActionResult<PlatformResponse>> Update([FromBody] UpdatePlatformRequest request)
     {
@@ -90,6 +94,7 @@ public class PlatformsController(
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _platformService.DeleteAsync(id);

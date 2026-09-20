@@ -1,3 +1,4 @@
+using Gamestore.API.Constants;
 using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests;
 using Gamestore.API.Models.Requests.Genres;
@@ -8,6 +9,7 @@ using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Genres;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gamestore.API.Controllers;
@@ -79,6 +81,7 @@ public class GenresController(
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     [ServiceFilter(typeof(ValidationFilter<CreateGenreRequest>))]
     public async Task<ActionResult<GenreResponse>> Create([FromBody] CreateGenreRequest request)
     {
@@ -90,6 +93,7 @@ public class GenresController(
     }
 
     [HttpPut]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     [ServiceFilter(typeof(ValidationFilter<UpdateGenreRequest>))]
     public async Task<ActionResult<GenreResponse>> Update([FromBody] UpdateGenreRequest request)
     {
@@ -101,6 +105,7 @@ public class GenresController(
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _genreService.DeleteAsync(id);

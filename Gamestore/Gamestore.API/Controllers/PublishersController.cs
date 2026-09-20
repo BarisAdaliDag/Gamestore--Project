@@ -1,3 +1,4 @@
+using Gamestore.API.Constants;
 using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Publishers;
 using Gamestore.API.Models.Responses.Games;
@@ -5,6 +6,7 @@ using Gamestore.API.Models.Responses.Publishers;
 using Gamestore.BLL.DTOs.Publishers;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gamestore.API.Controllers;
@@ -50,6 +52,7 @@ public class PublishersController(
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     [ServiceFilter(typeof(ValidationFilter<CreatePublisherRequest>))]
     public async Task<ActionResult<PublisherResponse>> Create([FromBody] CreatePublisherRequest request)
     {
@@ -61,6 +64,7 @@ public class PublishersController(
     }
 
     [HttpPut]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     [ServiceFilter(typeof(ValidationFilter<UpdatePublisherRequest>))]
     public async Task<ActionResult<PublisherResponse>> Update([FromBody] UpdatePublisherRequest request)
     {
@@ -72,6 +76,7 @@ public class PublishersController(
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicyNames.ManagerOrHigher)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _publisherService.DeleteAsync(id);

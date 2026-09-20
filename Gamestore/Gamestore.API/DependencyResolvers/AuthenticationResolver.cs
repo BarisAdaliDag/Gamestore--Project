@@ -1,6 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using Gamestore.API.Constants;
 using Gamestore.BLL.Constants;
+using Gamestore.Domain.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -52,7 +54,28 @@ public static class AuthenticationResolver
                 };
             });
 
-        services.AddAuthorization();
+        services.AddAuthorizationBuilder()
+            .AddPolicy(
+                AuthorizationPolicyNames.UserOrHigher,
+                policy => policy.RequireRole(
+                    RoleNames.User,
+                    RoleNames.Moderator,
+                    RoleNames.Manager,
+                    RoleNames.Administrator))
+            .AddPolicy(
+                AuthorizationPolicyNames.ModeratorOrHigher,
+                policy => policy.RequireRole(
+                    RoleNames.Moderator,
+                    RoleNames.Manager,
+                    RoleNames.Administrator))
+            .AddPolicy(
+                AuthorizationPolicyNames.ManagerOrHigher,
+                policy => policy.RequireRole(
+                    RoleNames.Manager,
+                    RoleNames.Administrator))
+            .AddPolicy(
+                AuthorizationPolicyNames.AdministratorOnly,
+                policy => policy.RequireRole(RoleNames.Administrator));
         return services;
     }
 
