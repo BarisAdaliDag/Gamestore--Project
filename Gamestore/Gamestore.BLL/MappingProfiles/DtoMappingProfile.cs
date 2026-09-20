@@ -3,6 +3,8 @@ using Gamestore.BLL.DTOs.Genres;
 using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.DTOs.Platforms;
 using Gamestore.BLL.DTOs.Publishers;
+using Gamestore.BLL.DTOs.Roles;
+using Gamestore.BLL.DTOs.Users;
 using Gamestore.Domain.Entities;
 using Mapster;
 
@@ -18,6 +20,8 @@ public class DtoMappingProfile : IRegister
         config.NewConfig<Publisher, PublisherDto>().TwoWays();
         config.NewConfig<Order, OrderDto>();
         config.NewConfig<OrderGame, OrderGameDto>();
+        config.NewConfig<User, UserDto>();
+        config.NewConfig<Role, RoleDto>();
 
         // NOTE: The Comment -> CommentDto mapping is intentionally not defined.
         // The Body field is calculated based on the parent (reply/quote/deleted) and the tree

@@ -14,4 +14,13 @@ public class UserRepository(GamestoreDbContext context) : Repository<User>(conte
             .ThenInclude(userRole => userRole.Role)
             .SingleOrDefaultAsync(user => user.Name == name);
     }
+
+    public async Task<User?> GetByIdWithRolesAsync(Guid id)
+    {
+        return await DbSet
+            .AsNoTracking()
+            .Include(user => user.UserRoles)
+            .ThenInclude(userRole => userRole.Role)
+            .SingleOrDefaultAsync(user => user.Id == id);
+    }
 }

@@ -1,5 +1,7 @@
+using Gamestore.API.Constants;
 using Gamestore.API.Filters;
 using Gamestore.API.Models.Requests.Users;
+using Gamestore.API.Models.Responses.Roles;
 using Gamestore.API.Models.Responses.Users;
 using Gamestore.BLL.Constants;
 using Gamestore.BLL.DTOs.Users;
@@ -15,8 +17,33 @@ namespace Gamestore.API.Controllers;
 public class UsersController(
     IUserAuthenticationService authenticationService,
     IPageAccessService pageAccessService,
+    IUserService userService,
     IMapper mapper) : ControllerBase
 {
+    [HttpGet]
+    [Authorize(Policy = AuthorizationPolicyNames.AdministratorOnly)]
+    public async Task<ActionResult<IEnumerable<UserResponse>>> GetAll()
+    {
+        var users = await userService.GetAllAsync();
+        return Ok(mapper.Map<IEnumerable<UserResponse>>(users));
+    }
+
+    [HttpGet("{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicyNames.AdministratorOnly)]
+    public async Task<ActionResult<UserResponse>> GetById(Guid id)
+    {
+        var user = await userService.GetByIdAsync(id);
+        return Ok(mapper.Map<UserResponse>(user));
+    }
+
+    [HttpGet("{id:guid}/roles")]
+    [Authorize(Policy = AuthorizationPolicyNames.AdministratorOnly)]
+    public async Task<ActionResult<IEnumerable<RoleResponse>>> GetRoles(Guid id)
+    {
+        var roles = await userService.GetRolesAsync(id);
+        return Ok(mapper.Map<IEnumerable<RoleResponse>>(roles));
+    }
+
     [AllowAnonymous]
     [HttpPost("login")]
     [ServiceFilter(typeof(ValidationFilter<LoginRequest>))]

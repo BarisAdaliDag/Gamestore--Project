@@ -31,6 +31,7 @@ public static class ServiceResolver
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<IUserAuthenticationService, UserAuthenticationService>();
         services.AddScoped<IPageAccessService, PageAccessService>();
+        services.AddScoped<IUserService, UserService>();
 
         // Time abstraction (for PublishDateFilter)
         services.AddSingleton(TimeProvider.System);

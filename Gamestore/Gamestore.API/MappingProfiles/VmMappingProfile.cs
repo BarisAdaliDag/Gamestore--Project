@@ -13,6 +13,8 @@ using Gamestore.API.Models.Responses.Genres;
 using Gamestore.API.Models.Responses.Orders;
 using Gamestore.API.Models.Responses.Platforms;
 using Gamestore.API.Models.Responses.Publishers;
+using Gamestore.API.Models.Responses.Roles;
+using Gamestore.API.Models.Responses.Users;
 using Gamestore.BLL.DTOs.Comments;
 using Gamestore.BLL.DTOs.Common;
 using Gamestore.BLL.DTOs.Games;
@@ -20,6 +22,7 @@ using Gamestore.BLL.DTOs.Genres;
 using Gamestore.BLL.DTOs.Orders;
 using Gamestore.BLL.DTOs.Platforms;
 using Gamestore.BLL.DTOs.Publishers;
+using Gamestore.BLL.DTOs.Roles;
 using Gamestore.BLL.DTOs.Users;
 using Gamestore.Domain.Enums;
 using Mapster;
@@ -85,6 +88,8 @@ public class VmMappingProfile : IRegister
 
         config.NewConfig<BanRequest, BanUserDto>();
         config.NewConfig<LoginModelRequest, LoginDto>();
+        config.NewConfig<UserDto, UserResponse>();
+        config.NewConfig<RoleDto, RoleResponse>();
 
         // Recursive but SAFE: the tree is already built, no computation, no back-reference.
         // (Comparison: Comment -> CommentDto mapping is intentionally absent, see DtoMappingProfile)
