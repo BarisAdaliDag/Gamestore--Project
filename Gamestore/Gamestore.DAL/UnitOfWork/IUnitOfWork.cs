@@ -25,5 +25,11 @@ public interface IUnitOfWork : IDisposable
 
     IRepository<Ban> Bans { get; }
 
+    IUserRepository Users { get; }
+
+    IRepository<Role> Roles { get; }
+
+    IRepository<UserRole> UserRoles { get; }
+
     Task<int> SaveChangesAsync();
 }

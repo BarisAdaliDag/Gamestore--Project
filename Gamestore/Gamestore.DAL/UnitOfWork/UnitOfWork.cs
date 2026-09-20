@@ -30,6 +30,9 @@ public class UnitOfWork : IUnitOfWork
         OrderGames = new Repository<OrderGame>(_context);
         Comments = new CommentRepository(_context);
         Bans = new Repository<Ban>(_context);
+        Users = new UserRepository(_context);
+        Roles = new Repository<Role>(_context);
+        UserRoles = new Repository<UserRole>(_context);
     }
 
     public IGameRepository Games { get; }
@@ -51,6 +54,12 @@ public class UnitOfWork : IUnitOfWork
     public ICommentRepository Comments { get; }
 
     public IRepository<Ban> Bans { get; }
+
+    public IUserRepository Users { get; }
+
+    public IRepository<Role> Roles { get; }
+
+    public IRepository<UserRole> UserRoles { get; }
 
     public async Task<int> SaveChangesAsync()
     {
