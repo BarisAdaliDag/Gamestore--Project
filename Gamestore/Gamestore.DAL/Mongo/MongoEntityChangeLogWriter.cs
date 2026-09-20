@@ -19,7 +19,7 @@ public sealed class MongoEntityChangeLogWriter(IMongoDbContext mongoDbContext)
     {
         var rawDocument = new BsonDocument
         {
-            ["_id"] = MongoDB.Bson.ObjectId.GenerateNewId(),
+            ["_id"] = ObjectId.GenerateNewId(),
             ["date"] = DateTime.UtcNow,
             ["action"] = action,
             ["entityType"] = entityType,
