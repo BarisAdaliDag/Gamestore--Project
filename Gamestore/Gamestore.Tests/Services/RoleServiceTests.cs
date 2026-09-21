@@ -4,6 +4,7 @@ using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Concrete;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
+using Gamestore.Domain.Constants;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
 using Moq;
@@ -110,6 +111,79 @@ public class RoleServiceTests
 
         _roles.Verify(repository => repository.AddAsync(It.IsAny<Role>()), Times.Never);
         _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldRenameCustomRole()
+    {
+        var role = new Role { Id = Guid.NewGuid(), Name = "Content Editor" };
+        var dto = CreateUpdateDto(role.Id, " Senior Editor ");
+        _roles.Setup(repository => repository.GetByIdAsync(role.Id)).ReturnsAsync(role);
+        _roles.Setup(repository =>
+                repository.GetSingleAsync(It.IsAny<Expression<Func<Role, bool>>>()))
+            .ReturnsAsync((Role?)null);
+        _mapper.Setup(mapper => mapper.Map<RoleDto>(role))
+            .Returns<Role>(source => new RoleDto { Id = source.Id, Name = source.Name });
+        var service = CreateService();
+
+        var result = await service.UpdateAsync(dto);
+
+        Assert.Equal("Senior Editor", result.Name);
+        _roles.Verify(repository => repository.Update(role), Times.Once);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldThrowWhenRoleDoesNotExist()
+    {
+        var dto = CreateUpdateDto(Guid.NewGuid(), "Senior Editor");
+        _roles.Setup(repository => repository.GetByIdAsync(dto.Role.Id)).ReturnsAsync((Role?)null);
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.UpdateAsync(dto));
+
+        _roles.Verify(repository => repository.Update(It.IsAny<Role>()), Times.Never);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldRejectDuplicateRoleName()
+    {
+        var role = new Role { Id = Guid.NewGuid(), Name = "Content Editor" };
+        var dto = CreateUpdateDto(role.Id, "Manager");
+        _roles.Setup(repository => repository.GetByIdAsync(role.Id)).ReturnsAsync(role);
+        _roles.Setup(repository =>
+                repository.GetSingleAsync(It.IsAny<Expression<Func<Role, bool>>>()))
+            .ReturnsAsync(new Role { Id = Guid.NewGuid(), Name = "Manager" });
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<EntityAlreadyExistsException>(() => service.UpdateAsync(dto));
+
+        _roles.Verify(repository => repository.Update(It.IsAny<Role>()), Times.Never);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldRejectRenamingDefaultRole()
+    {
+        var role = new Role { Id = Guid.NewGuid(), Name = RoleNames.Administrator };
+        var dto = CreateUpdateDto(role.Id, "Super Administrator");
+        _roles.Setup(repository => repository.GetByIdAsync(role.Id)).ReturnsAsync(role);
+        var service = CreateService();
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => service.UpdateAsync(dto));
+
+        Assert.Equal("Default roles cannot be renamed.", exception.Message);
+        _roles.Verify(repository => repository.Update(It.IsAny<Role>()), Times.Never);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    private static UpdateRoleDto CreateUpdateDto(Guid roleId, string roleName)
+    {
+        return new UpdateRoleDto
+        {
+            Role = new RoleUpdateInfoDto { Id = roleId, Name = roleName },
+        };
     }
 
     private RoleService CreateService()

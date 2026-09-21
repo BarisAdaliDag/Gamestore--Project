@@ -2,6 +2,7 @@ using Gamestore.BLL.DTOs.Roles;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Abstract;
 using Gamestore.DAL.UnitOfWork;
+using Gamestore.Domain.Constants;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
 
@@ -49,5 +50,42 @@ public class RoleService(IUnitOfWork unitOfWork, IMapper mapper) : IRoleService
         await unitOfWork.SaveChangesAsync();
 
         return mapper.Map<RoleDto>(role);
+    }
+
+    public async Task<RoleDto> UpdateAsync(UpdateRoleDto dto)
+    {
+        var roleName = dto.Role.Name.Trim();
+        if (string.IsNullOrWhiteSpace(roleName))
+        {
+            throw new ValidationException("Role name is required.");
+        }
+
+        var role = await unitOfWork.Roles.GetByIdAsync(dto.Role.Id)
+            ?? throw new NotFoundException(nameof(Role), dto.Role.Id);
+        if (IsDefaultRole(role.Name) && role.Name != roleName)
+        {
+            throw new ValidationException("Default roles cannot be renamed.");
+        }
+
+        var duplicateRole = await unitOfWork.Roles.GetSingleAsync(
+            existingRole => existingRole.Name == roleName && existingRole.Id != role.Id);
+        if (duplicateRole != null)
+        {
+            throw new EntityAlreadyExistsException(nameof(Role), "name", roleName);
+        }
+
+        role.Name = roleName;
+        unitOfWork.Roles.Update(role);
+        await unitOfWork.SaveChangesAsync();
+
+        return mapper.Map<RoleDto>(role);
+    }
+
+    private static bool IsDefaultRole(string roleName)
+    {
+        return roleName is RoleNames.Administrator
+            or RoleNames.Manager
+            or RoleNames.Moderator
+            or RoleNames.User;
     }
 }

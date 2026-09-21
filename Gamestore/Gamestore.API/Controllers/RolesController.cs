@@ -39,4 +39,15 @@ public class RolesController(IRoleService roleService, IMapper mapper) : Control
 
         return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
     }
+
+    [HttpPut]
+    [ServiceFilter(typeof(ValidationFilter<UpdateRoleRequest>))]
+    public async Task<ActionResult<RoleResponse>> Update([FromBody] UpdateRoleRequest request)
+    {
+        var dto = mapper.Map<UpdateRoleDto>(request);
+        var role = await roleService.UpdateAsync(dto);
+        var response = mapper.Map<RoleResponse>(role);
+
+        return Ok(response);
+    }
 }

@@ -1,0 +1,8 @@
+namespace Gamestore.API.Models.Requests.Roles;
+
+public class RoleUpdateInfoRequest
+{
+    public Guid Id { get; set; }
+
+    public required string Name { get; set; }
+}

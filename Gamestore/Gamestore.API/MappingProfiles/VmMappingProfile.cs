@@ -97,6 +97,8 @@ public class VmMappingProfile : IRegister
         config.NewConfig<RoleDto, RoleResponse>();
         config.NewConfig<CreateRoleRequest, CreateRoleDto>();
         config.NewConfig<RoleCreateInfoRequest, RoleCreateInfoDto>();
+        config.NewConfig<UpdateRoleRequest, UpdateRoleDto>();
+        config.NewConfig<RoleUpdateInfoRequest, RoleUpdateInfoDto>();
 
         // Recursive but SAFE: the tree is already built, no computation, no back-reference.
         // (Comparison: Comment -> CommentDto mapping is intentionally absent, see DtoMappingProfile)
