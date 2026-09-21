@@ -3,6 +3,7 @@ using Gamestore.BLL.DTOs.Users;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Abstract;
 using Gamestore.DAL.UnitOfWork;
+using Gamestore.Domain.Constants;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
 
@@ -138,5 +139,27 @@ public class UserService(
 
         await unitOfWork.SaveChangesAsync();
         return mapper.Map<UserDto>(user);
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        var user = await unitOfWork.Users.GetByIdWithRolesForUpdateAsync(id)
+            ?? throw new NotFoundException(nameof(User), id);
+        var isAdministrator = user.UserRoles.Any(
+            userRole => userRole.Role?.Name == RoleNames.Administrator);
+
+        if (isAdministrator
+            && await unitOfWork.Users.CountByRoleNameAsync(RoleNames.Administrator) <= 1)
+        {
+            throw new ValidationException("The last Administrator user cannot be deleted.");
+        }
+
+        foreach (var userRole in user.UserRoles)
+        {
+            unitOfWork.UserRoles.Delete(userRole);
+        }
+
+        unitOfWork.Users.Delete(user);
+        await unitOfWork.SaveChangesAsync();
     }
 }

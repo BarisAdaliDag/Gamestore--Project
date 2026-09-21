@@ -6,6 +6,7 @@ using Gamestore.BLL.Services.Abstract;
 using Gamestore.BLL.Services.Concrete;
 using Gamestore.DAL.Repositories.Abstract;
 using Gamestore.DAL.UnitOfWork;
+using Gamestore.Domain.Constants;
 using Gamestore.Domain.Entities;
 using MapsterMapper;
 using Moq;
@@ -250,6 +251,65 @@ public class UserServiceTests
 
         await Assert.ThrowsAsync<ValidationException>(() => service.UpdateAsync(dto));
 
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncShouldDeleteUserAndAssignedRoles()
+    {
+        var user = CreateUser();
+        var userRole = new UserRole
+        {
+            UserId = user.Id,
+            RoleId = Guid.NewGuid(),
+            Role = new Role { Id = Guid.NewGuid(), Name = RoleNames.User },
+        };
+        user.UserRoles.Add(userRole);
+        _users.Setup(repository => repository.GetByIdWithRolesForUpdateAsync(user.Id))
+            .ReturnsAsync(user);
+        var service = CreateService();
+
+        await service.DeleteAsync(user.Id);
+
+        _userRoles.Verify(repository => repository.Delete(userRole), Times.Once);
+        _users.Verify(repository => repository.Delete(user), Times.Once);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncShouldThrowWhenUserDoesNotExist()
+    {
+        var id = Guid.NewGuid();
+        _users.Setup(repository => repository.GetByIdWithRolesForUpdateAsync(id))
+            .ReturnsAsync((User?)null);
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.DeleteAsync(id));
+
+        _users.Verify(repository => repository.Delete(It.IsAny<User>()), Times.Never);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncShouldRejectDeletingLastAdministrator()
+    {
+        var user = CreateUser();
+        user.UserRoles.Add(new UserRole
+        {
+            UserId = user.Id,
+            RoleId = Guid.NewGuid(),
+            Role = new Role { Id = Guid.NewGuid(), Name = RoleNames.Administrator },
+        });
+        _users.Setup(repository => repository.GetByIdWithRolesForUpdateAsync(user.Id))
+            .ReturnsAsync(user);
+        _users.Setup(repository => repository.CountByRoleNameAsync(RoleNames.Administrator))
+            .ReturnsAsync(1);
+        var service = CreateService();
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => service.DeleteAsync(user.Id));
+
+        Assert.Equal("The last Administrator user cannot be deleted.", exception.Message);
+        _users.Verify(repository => repository.Delete(It.IsAny<User>()), Times.Never);
         _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
     }
 

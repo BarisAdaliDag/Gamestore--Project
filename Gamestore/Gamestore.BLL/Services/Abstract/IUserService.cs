@@ -14,4 +14,6 @@ public interface IUserService
     Task<UserDto> CreateAsync(CreateUserDto dto);
 
     Task<UserDto> UpdateAsync(UpdateUserDto dto);
+
+    Task DeleteAsync(Guid id);
 }

@@ -31,4 +31,10 @@ public class UserRepository(GamestoreDbContext context) : Repository<User>(conte
             .ThenInclude(userRole => userRole.Role)
             .SingleOrDefaultAsync(user => user.Id == id);
     }
+
+    public async Task<int> CountByRoleNameAsync(string roleName)
+    {
+        return await DbSet.CountAsync(user => user.UserRoles.Any(
+            userRole => userRole.Role != null && userRole.Role.Name == roleName));
+    }
 }

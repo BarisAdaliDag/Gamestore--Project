@@ -68,6 +68,15 @@ public class UsersController(
         return Ok(response);
     }
 
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicyNames.AdministratorOnly)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await userService.DeleteAsync(id);
+
+        return NoContent();
+    }
+
     [AllowAnonymous]
     [HttpPost("login")]
     [ServiceFilter(typeof(ValidationFilter<LoginRequest>))]

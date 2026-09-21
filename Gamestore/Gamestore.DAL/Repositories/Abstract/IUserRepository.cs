@@ -9,4 +9,6 @@ public interface IUserRepository : IRepository<User>
     Task<User?> GetByIdWithRolesAsync(Guid id);
 
     Task<User?> GetByIdWithRolesForUpdateAsync(Guid id);
+
+    Task<int> CountByRoleNameAsync(string roleName);
 }
