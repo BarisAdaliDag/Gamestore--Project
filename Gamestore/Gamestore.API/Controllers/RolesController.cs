@@ -1,5 +1,8 @@
 using Gamestore.API.Constants;
+using Gamestore.API.Filters;
+using Gamestore.API.Models.Requests.Roles;
 using Gamestore.API.Models.Responses.Roles;
+using Gamestore.BLL.DTOs.Roles;
 using Gamestore.BLL.Services.Abstract;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -24,5 +27,16 @@ public class RolesController(IRoleService roleService, IMapper mapper) : Control
     {
         var role = await roleService.GetByIdAsync(id);
         return Ok(mapper.Map<RoleResponse>(role));
+    }
+
+    [HttpPost]
+    [ServiceFilter(typeof(ValidationFilter<CreateRoleRequest>))]
+    public async Task<ActionResult<RoleResponse>> Create([FromBody] CreateRoleRequest request)
+    {
+        var dto = mapper.Map<CreateRoleDto>(request);
+        var role = await roleService.CreateAsync(dto);
+        var response = mapper.Map<RoleResponse>(role);
+
+        return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
     }
 }

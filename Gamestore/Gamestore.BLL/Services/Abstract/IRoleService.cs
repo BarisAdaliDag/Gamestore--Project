@@ -7,4 +7,6 @@ public interface IRoleService
     Task<IEnumerable<RoleDto>> GetAllAsync();
 
     Task<RoleDto> GetByIdAsync(Guid id);
+
+    Task<RoleDto> CreateAsync(CreateRoleDto dto);
 }

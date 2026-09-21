@@ -24,4 +24,30 @@ public class RoleService(IUnitOfWork unitOfWork, IMapper mapper) : IRoleService
 
         return mapper.Map<RoleDto>(role);
     }
+
+    public async Task<RoleDto> CreateAsync(CreateRoleDto dto)
+    {
+        var roleName = dto.Role.Name.Trim();
+        if (string.IsNullOrWhiteSpace(roleName))
+        {
+            throw new ValidationException("Role name is required.");
+        }
+
+        var existingRole = await unitOfWork.Roles.GetSingleAsync(role => role.Name == roleName);
+        if (existingRole != null)
+        {
+            throw new EntityAlreadyExistsException(nameof(Role), "name", roleName);
+        }
+
+        var role = new Role
+        {
+            Id = Guid.NewGuid(),
+            Name = roleName,
+        };
+
+        await unitOfWork.Roles.AddAsync(role);
+        await unitOfWork.SaveChangesAsync();
+
+        return mapper.Map<RoleDto>(role);
+    }
 }

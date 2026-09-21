@@ -5,6 +5,7 @@ using Gamestore.API.Models.Requests.Genres;
 using Gamestore.API.Models.Requests.Orders;
 using Gamestore.API.Models.Requests.Platforms;
 using Gamestore.API.Models.Requests.Publishers;
+using Gamestore.API.Models.Requests.Roles;
 using Gamestore.API.Models.Requests.Users;
 using Gamestore.API.Models.Responses.Comments;
 using Gamestore.API.Models.Responses.Common;
@@ -94,6 +95,8 @@ public class VmMappingProfile : IRegister
         config.NewConfig<UserUpdateInfoRequest, UserUpdateInfoDto>();
         config.NewConfig<UserDto, UserResponse>();
         config.NewConfig<RoleDto, RoleResponse>();
+        config.NewConfig<CreateRoleRequest, CreateRoleDto>();
+        config.NewConfig<RoleCreateInfoRequest, RoleCreateInfoDto>();
 
         // Recursive but SAFE: the tree is already built, no computation, no back-reference.
         // (Comparison: Comment -> CommentDto mapping is intentionally absent, see DtoMappingProfile)

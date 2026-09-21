@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Gamestore.BLL.DTOs.Roles;
 using Gamestore.BLL.Exceptions;
 using Gamestore.BLL.Services.Concrete;
@@ -66,6 +67,49 @@ public class RoleServiceTests
         var service = CreateService();
 
         await Assert.ThrowsAsync<NotFoundException>(() => service.GetByIdAsync(id));
+    }
+
+    [Fact]
+    public async Task CreateAsyncShouldCreateRole()
+    {
+        var dto = new CreateRoleDto
+        {
+            Role = new RoleCreateInfoDto { Name = " Content Editor " },
+        };
+        _roles.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<Role, bool>>>()))
+            .ReturnsAsync((Role?)null);
+        _mapper.Setup(mapper => mapper.Map<RoleDto>(It.IsAny<Role>()))
+            .Returns<Role>(role => new RoleDto { Id = role.Id, Name = role.Name });
+        var service = CreateService();
+
+        var result = await service.CreateAsync(dto);
+
+        Assert.NotEqual(Guid.Empty, result.Id);
+        Assert.Equal("Content Editor", result.Name);
+        _roles.Verify(
+            repository => repository.AddAsync(
+                It.Is<Role>(role => role.Name == "Content Editor")),
+            Times.Once);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsyncShouldRejectDuplicateRoleName()
+    {
+        var dto = new CreateRoleDto
+        {
+            Role = new RoleCreateInfoDto { Name = "Administrator" },
+        };
+        _roles.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<Role, bool>>>()))
+            .ReturnsAsync(new Role { Id = Guid.NewGuid(), Name = "Administrator" });
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<EntityAlreadyExistsException>(() => service.CreateAsync(dto));
+
+        _roles.Verify(repository => repository.AddAsync(It.IsAny<Role>()), Times.Never);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
     }
 
     private RoleService CreateService()
