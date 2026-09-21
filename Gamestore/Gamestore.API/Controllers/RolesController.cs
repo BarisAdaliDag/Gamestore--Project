@@ -50,4 +50,12 @@ public class RolesController(IRoleService roleService, IMapper mapper) : Control
 
         return Ok(response);
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await roleService.DeleteAsync(id);
+
+        return NoContent();
+    }
 }

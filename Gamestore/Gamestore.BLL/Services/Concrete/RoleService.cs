@@ -81,6 +81,25 @@ public class RoleService(IUnitOfWork unitOfWork, IMapper mapper) : IRoleService
         return mapper.Map<RoleDto>(role);
     }
 
+    public async Task DeleteAsync(Guid id)
+    {
+        var role = await unitOfWork.Roles.GetByIdAsync(id)
+            ?? throw new NotFoundException(nameof(Role), id);
+        if (IsDefaultRole(role.Name))
+        {
+            throw new ValidationException("Default roles cannot be deleted.");
+        }
+
+        var userRoles = await unitOfWork.UserRoles.FindAsync(userRole => userRole.RoleId == id);
+        if (userRoles.Any())
+        {
+            throw new EntityInUseException(nameof(Role), id);
+        }
+
+        unitOfWork.Roles.Delete(role);
+        await unitOfWork.SaveChangesAsync();
+    }
+
     private static bool IsDefaultRole(string roleName)
     {
         return roleName is RoleNames.Administrator

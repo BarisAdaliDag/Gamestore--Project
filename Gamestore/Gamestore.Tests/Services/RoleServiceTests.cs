@@ -16,10 +16,12 @@ public class RoleServiceTests
     private readonly Mock<IMapper> _mapper = new();
     private readonly Mock<IRepository<Role>> _roles = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
+    private readonly Mock<IRepository<UserRole>> _userRoles = new();
 
     public RoleServiceTests()
     {
         _unitOfWork.SetupGet(unitOfWork => unitOfWork.Roles).Returns(_roles.Object);
+        _unitOfWork.SetupGet(unitOfWork => unitOfWork.UserRoles).Returns(_userRoles.Object);
     }
 
     [Fact]
@@ -175,6 +177,67 @@ public class RoleServiceTests
 
         Assert.Equal("Default roles cannot be renamed.", exception.Message);
         _roles.Verify(repository => repository.Update(It.IsAny<Role>()), Times.Never);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncShouldDeleteUnusedCustomRole()
+    {
+        var role = new Role { Id = Guid.NewGuid(), Name = "Content Editor" };
+        _roles.Setup(repository => repository.GetByIdAsync(role.Id)).ReturnsAsync(role);
+        _userRoles.Setup(repository => repository.FindAsync(
+                It.IsAny<Expression<Func<UserRole, bool>>>()))
+            .ReturnsAsync([]);
+        var service = CreateService();
+
+        await service.DeleteAsync(role.Id);
+
+        _roles.Verify(repository => repository.Delete(role), Times.Once);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncShouldThrowWhenRoleDoesNotExist()
+    {
+        var id = Guid.NewGuid();
+        _roles.Setup(repository => repository.GetByIdAsync(id)).ReturnsAsync((Role?)null);
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.DeleteAsync(id));
+
+        _roles.Verify(repository => repository.Delete(It.IsAny<Role>()), Times.Never);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncShouldRejectDeletingDefaultRole()
+    {
+        var role = new Role { Id = Guid.NewGuid(), Name = RoleNames.Manager };
+        _roles.Setup(repository => repository.GetByIdAsync(role.Id)).ReturnsAsync(role);
+        var service = CreateService();
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => service.DeleteAsync(role.Id));
+
+        Assert.Equal("Default roles cannot be deleted.", exception.Message);
+        _roles.Verify(repository => repository.Delete(It.IsAny<Role>()), Times.Never);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncShouldRejectDeletingAssignedRole()
+    {
+        var role = new Role { Id = Guid.NewGuid(), Name = "Content Editor" };
+        _roles.Setup(repository => repository.GetByIdAsync(role.Id)).ReturnsAsync(role);
+        _userRoles.Setup(repository => repository.FindAsync(
+                It.IsAny<Expression<Func<UserRole, bool>>>()))
+            .ReturnsAsync([
+                new UserRole { UserId = Guid.NewGuid(), RoleId = role.Id },
+            ]);
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<EntityInUseException>(() => service.DeleteAsync(role.Id));
+
+        _roles.Verify(repository => repository.Delete(It.IsAny<Role>()), Times.Never);
         _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
     }
 

@@ -11,4 +11,6 @@ public interface IRoleService
     Task<RoleDto> CreateAsync(CreateRoleDto dto);
 
     Task<RoleDto> UpdateAsync(UpdateRoleDto dto);
+
+    Task DeleteAsync(Guid id);
 }
