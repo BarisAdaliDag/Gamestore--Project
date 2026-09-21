@@ -56,6 +56,18 @@ public class UsersController(
         return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
     }
 
+    [HttpPut]
+    [Authorize(Policy = AuthorizationPolicyNames.AdministratorOnly)]
+    [ServiceFilter(typeof(ValidationFilter<UpdateUserRequest>))]
+    public async Task<ActionResult<UserResponse>> Update([FromBody] UpdateUserRequest request)
+    {
+        var dto = mapper.Map<UpdateUserDto>(request);
+        var user = await userService.UpdateAsync(dto);
+        var response = mapper.Map<UserResponse>(user);
+
+        return Ok(response);
+    }
+
     [AllowAnonymous]
     [HttpPost("login")]
     [ServiceFilter(typeof(ValidationFilter<LoginRequest>))]

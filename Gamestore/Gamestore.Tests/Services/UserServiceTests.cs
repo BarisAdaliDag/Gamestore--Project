@@ -158,6 +158,101 @@ public class UserServiceTests
         _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
     }
 
+    [Fact]
+    public async Task UpdateAsyncShouldHashPasswordAndReplaceAssignedRoles()
+    {
+        var oldRoleId = Guid.NewGuid();
+        var newRole = new Role { Id = Guid.NewGuid(), Name = "Manager" };
+        var user = CreateUser();
+        var oldUserRole = new UserRole
+        {
+            UserId = user.Id,
+            RoleId = oldRoleId,
+        };
+        user.UserRoles.Add(oldUserRole);
+        var dto = CreateUpdateDto(user.Id, newRole.Id);
+        _users.Setup(repository => repository.GetByIdWithRolesForUpdateAsync(user.Id))
+            .ReturnsAsync(user);
+        _users.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<User, bool>>>()))
+            .ReturnsAsync((User?)null);
+        _roles.Setup(repository => repository.FindAsync(
+                It.IsAny<Expression<Func<Role, bool>>>()))
+            .ReturnsAsync([newRole]);
+        _passwordHashService.Setup(service => service.HashPassword(user, dto.Password))
+            .Returns("updated-hash");
+        _mapper.Setup(mapper => mapper.Map<UserDto>(user))
+            .Returns(new UserDto { Id = user.Id, Name = dto.User.Name });
+        var service = CreateService();
+
+        var result = await service.UpdateAsync(dto);
+
+        Assert.Equal("UpdatedUser", result.Name);
+        Assert.Equal("UpdatedUser", user.Name);
+        Assert.Equal("updated-hash", user.PasswordHash);
+        _userRoles.Verify(repository => repository.Delete(oldUserRole), Times.Once);
+        _userRoles.Verify(
+            repository => repository.AddAsync(
+                It.Is<UserRole>(userRole => userRole.UserId == user.Id && userRole.RoleId == newRole.Id)),
+            Times.Once);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldThrowWhenUserDoesNotExist()
+    {
+        var dto = CreateUpdateDto(Guid.NewGuid(), Guid.NewGuid());
+        _users.Setup(repository => repository.GetByIdWithRolesForUpdateAsync(dto.User.Id))
+            .ReturnsAsync((User?)null);
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.UpdateAsync(dto));
+
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldRejectDuplicateUserName()
+    {
+        var user = CreateUser();
+        var dto = CreateUpdateDto(user.Id, Guid.NewGuid());
+        _users.Setup(repository => repository.GetByIdWithRolesForUpdateAsync(user.Id))
+            .ReturnsAsync(user);
+        _users.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<User, bool>>>()))
+            .ReturnsAsync(new User
+            {
+                Id = Guid.NewGuid(),
+                Name = dto.User.Name,
+                PasswordHash = "another-hash",
+            });
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<EntityAlreadyExistsException>(() => service.UpdateAsync(dto));
+
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncShouldRejectUnknownRole()
+    {
+        var user = CreateUser();
+        var dto = CreateUpdateDto(user.Id, Guid.NewGuid());
+        _users.Setup(repository => repository.GetByIdWithRolesForUpdateAsync(user.Id))
+            .ReturnsAsync(user);
+        _users.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<User, bool>>>()))
+            .ReturnsAsync((User?)null);
+        _roles.Setup(repository => repository.FindAsync(
+                It.IsAny<Expression<Func<Role, bool>>>()))
+            .ReturnsAsync([]);
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<ValidationException>(() => service.UpdateAsync(dto));
+
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
     private static User CreateUser()
     {
         return new User
@@ -175,6 +270,16 @@ public class UserServiceTests
             User = new UserCreateInfoDto { Name = "NewUser" },
             Roles = [roleId],
             Password = "SecurePassword",
+        };
+    }
+
+    private static UpdateUserDto CreateUpdateDto(Guid userId, Guid roleId)
+    {
+        return new UpdateUserDto
+        {
+            User = new UserUpdateInfoDto { Id = userId, Name = "UpdatedUser" },
+            Roles = [roleId],
+            Password = "UpdatedPassword",
         };
     }
 

@@ -12,4 +12,6 @@ public interface IUserService
     Task<IEnumerable<RoleDto>> GetRolesAsync(Guid id);
 
     Task<UserDto> CreateAsync(CreateUserDto dto);
+
+    Task<UserDto> UpdateAsync(UpdateUserDto dto);
 }

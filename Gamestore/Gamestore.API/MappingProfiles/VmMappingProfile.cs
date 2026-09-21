@@ -90,6 +90,8 @@ public class VmMappingProfile : IRegister
         config.NewConfig<LoginModelRequest, LoginDto>();
         config.NewConfig<CreateUserRequest, CreateUserDto>();
         config.NewConfig<UserCreateInfoRequest, UserCreateInfoDto>();
+        config.NewConfig<UpdateUserRequest, UpdateUserDto>();
+        config.NewConfig<UserUpdateInfoRequest, UserUpdateInfoDto>();
         config.NewConfig<UserDto, UserResponse>();
         config.NewConfig<RoleDto, RoleResponse>();
 

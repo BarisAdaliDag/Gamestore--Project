@@ -85,4 +85,58 @@ public class UserService(
         await unitOfWork.SaveChangesAsync();
         return mapper.Map<UserDto>(user);
     }
+
+    public async Task<UserDto> UpdateAsync(UpdateUserDto dto)
+    {
+        var userName = dto.User.Name.Trim();
+        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(dto.Password))
+        {
+            throw new ValidationException("User name and password are required.");
+        }
+
+        var roleIds = dto.Roles.Distinct().ToList();
+        if (roleIds.Count == 0 || roleIds.Count != dto.Roles.Count)
+        {
+            throw new ValidationException("At least one unique role is required.");
+        }
+
+        var user = await unitOfWork.Users.GetByIdWithRolesForUpdateAsync(dto.User.Id)
+            ?? throw new NotFoundException(nameof(User), dto.User.Id);
+        var duplicateUser = await unitOfWork.Users.GetSingleAsync(
+            existingUser => existingUser.Name == userName && existingUser.Id != user.Id);
+        if (duplicateUser != null)
+        {
+            throw new EntityAlreadyExistsException(nameof(User), "name", userName);
+        }
+
+        var roles = (await unitOfWork.Roles.FindAsync(role => roleIds.Contains(role.Id))).ToList();
+        if (roles.Count != roleIds.Count)
+        {
+            throw new ValidationException("One or more selected roles do not exist.");
+        }
+
+        var existingRoleIds = user.UserRoles.Select(userRole => userRole.RoleId).ToHashSet();
+        var removedUserRoles = user.UserRoles
+            .Where(userRole => !roleIds.Contains(userRole.RoleId))
+            .ToList();
+        foreach (var userRole in removedUserRoles)
+        {
+            unitOfWork.UserRoles.Delete(userRole);
+        }
+
+        foreach (var roleId in roleIds.Where(roleId => !existingRoleIds.Contains(roleId)))
+        {
+            await unitOfWork.UserRoles.AddAsync(new UserRole
+            {
+                UserId = user.Id,
+                RoleId = roleId,
+            });
+        }
+
+        user.Name = userName;
+        user.PasswordHash = passwordHashService.HashPassword(user, dto.Password);
+
+        await unitOfWork.SaveChangesAsync();
+        return mapper.Map<UserDto>(user);
+    }
 }
