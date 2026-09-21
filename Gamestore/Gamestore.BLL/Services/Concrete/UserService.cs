@@ -116,6 +116,16 @@ public class UserService(
             throw new ValidationException("One or more selected roles do not exist.");
         }
 
+        var isAdministrator = user.UserRoles.Any(
+            userRole => userRole.Role?.Name == RoleNames.Administrator);
+        var keepsAdministratorRole = roles.Any(role => role.Name == RoleNames.Administrator);
+        if (isAdministrator
+            && !keepsAdministratorRole
+            && await unitOfWork.Users.CountByRoleNameAsync(RoleNames.Administrator) <= 1)
+        {
+            throw new ValidationException("The last Administrator user cannot lose the Administrator role.");
+        }
+
         var existingRoleIds = user.UserRoles.Select(userRole => userRole.RoleId).ToHashSet();
         var removedUserRoles = user.UserRoles
             .Where(userRole => !roleIds.Contains(userRole.RoleId))

@@ -255,6 +255,41 @@ public class UserServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsyncShouldRejectDemotingLastAdministrator()
+    {
+        var administratorRole = new Role { Id = Guid.NewGuid(), Name = RoleNames.Administrator };
+        var userRole = new Role { Id = Guid.NewGuid(), Name = RoleNames.User };
+        var user = CreateUser();
+        user.UserRoles.Add(new UserRole
+        {
+            UserId = user.Id,
+            RoleId = administratorRole.Id,
+            Role = administratorRole,
+        });
+        var dto = CreateUpdateDto(user.Id, userRole.Id);
+        _users.Setup(repository => repository.GetByIdWithRolesForUpdateAsync(user.Id))
+            .ReturnsAsync(user);
+        _users.Setup(repository => repository.GetSingleAsync(
+                It.IsAny<Expression<Func<User, bool>>>()))
+            .ReturnsAsync((User?)null);
+        _roles.Setup(repository => repository.FindAsync(
+                It.IsAny<Expression<Func<Role, bool>>>()))
+            .ReturnsAsync([userRole]);
+        _users.Setup(repository => repository.CountByRoleNameAsync(RoleNames.Administrator))
+            .ReturnsAsync(1);
+        var service = CreateService();
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => service.UpdateAsync(dto));
+
+        Assert.Equal(
+            "The last Administrator user cannot lose the Administrator role.",
+            exception.Message);
+        _userRoles.Verify(repository => repository.Delete(It.IsAny<UserRole>()), Times.Never);
+        _userRoles.Verify(repository => repository.AddAsync(It.IsAny<UserRole>()), Times.Never);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
     public async Task DeleteAsyncShouldDeleteUserAndAssignedRoles()
     {
         var user = CreateUser();
