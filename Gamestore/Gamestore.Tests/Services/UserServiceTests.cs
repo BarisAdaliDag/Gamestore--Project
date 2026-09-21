@@ -113,10 +113,14 @@ public class UserServiceTests
         var result = await service.CreateAsync(dto);
 
         Assert.Equal("NewUser", result.Name);
-        _users.Verify(repository => repository.AddAsync(
-            It.Is<User>(user => user.PasswordHash == "hashed-password")), Times.Once);
-        _userRoles.Verify(repository => repository.AddAsync(
-            It.Is<UserRole>(userRole => userRole.RoleId == role.Id)), Times.Once);
+        _users.Verify(
+            repository => repository.AddAsync(
+                It.Is<User>(user => user.PasswordHash == "hashed-password")),
+            Times.Once);
+        _userRoles.Verify(
+            repository => repository.AddAsync(
+                It.Is<UserRole>(userRole => userRole.RoleId == role.Id)),
+            Times.Once);
         _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(), Times.Once);
     }
 
