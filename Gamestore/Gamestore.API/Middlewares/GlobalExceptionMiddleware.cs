@@ -25,7 +25,9 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
     private void LogExceptionDetails(Exception exception)
     {
         // Authorization and credential rejections are expected, not server errors.
-        if (exception is ForbiddenException or InvalidCredentialsException)
+        if (exception is ForbiddenException
+            or InvalidCredentialsException
+            or ExternalAuthenticationUnavailableException)
         {
             _logger.LogWarning(
                 "Request rejected ({ExceptionType}): {Message}",
@@ -69,6 +71,7 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
             EntityInUseException => (HttpStatusCode.Conflict, exception.Message),
             OutOfStockException => (HttpStatusCode.Conflict, exception.Message),
             ValidationException => (HttpStatusCode.BadRequest, exception.Message),
+            ExternalAuthenticationUnavailableException => (HttpStatusCode.ServiceUnavailable, exception.Message),
             _ => (HttpStatusCode.InternalServerError, "An internal server error occurred."),
         };
 

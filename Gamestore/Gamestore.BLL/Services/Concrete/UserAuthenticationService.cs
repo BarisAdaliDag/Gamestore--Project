@@ -8,18 +8,19 @@ namespace Gamestore.BLL.Services.Concrete;
 public class UserAuthenticationService(
     IUnitOfWork unitOfWork,
     IPasswordHashService passwordHashService,
-    IJwtTokenService jwtTokenService) : IUserAuthenticationService
+    IJwtTokenService jwtTokenService,
+    IExternalAuthenticationService externalAuthenticationService) : IUserAuthenticationService
 {
     public async Task<string> LoginAsync(LoginDto dto)
     {
-        if (!dto.InternalAuth)
-        {
-            throw new ValidationException("External authentication is not supported.");
-        }
+        var user = await unitOfWork.Users.GetByNameWithRolesAsync(dto.Login)
+            ?? throw new InvalidCredentialsException();
 
-        var user = await unitOfWork.Users.GetByNameWithRolesAsync(dto.Login);
+        var credentialsAreValid = dto.InternalAuth
+            ? passwordHashService.VerifyPassword(user, dto.Password)
+            : await externalAuthenticationService.AuthenticateAsync(dto.Login, dto.Password);
 
-        return user is not null && passwordHashService.VerifyPassword(user, dto.Password)
+        return credentialsAreValid
             ? jwtTokenService.GenerateToken(user)
             : throw new InvalidCredentialsException();
     }

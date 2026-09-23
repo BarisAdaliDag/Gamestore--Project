@@ -29,6 +29,7 @@ public static class ServiceResolver
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IPasswordHashService, PasswordHashService>();
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+        services.AddScoped<IExternalAuthenticationService, ExternalAuthenticationService>();
         services.AddScoped<IUserAuthenticationService, UserAuthenticationService>();
         services.AddScoped<IPageAccessService, PageAccessService>();
         services.AddScoped<IUserService, UserService>();

@@ -55,7 +55,7 @@ public class JwtTokenService : IJwtTokenService
 
         claims.AddRange(user.UserRoles
             .Where(userRole => userRole.Role is not null)
-            .Select(userRole => new Claim(JwtClaimNames.Role, userRole.Role!.Name)));
+            .Select(userRole => new Claim(JwtClaimNames.Role, userRole.Role.Name)));
 
         var token = new JwtSecurityToken(
             issuer: _issuer,

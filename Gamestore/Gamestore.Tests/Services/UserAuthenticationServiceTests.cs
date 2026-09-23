@@ -13,6 +13,7 @@ public class UserAuthenticationServiceTests
 {
     private readonly Mock<IJwtTokenService> _jwtTokenService = new();
     private readonly Mock<IPasswordHashService> _passwordHashService = new();
+    private readonly Mock<IExternalAuthenticationService> _externalAuthenticationService = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IUserRepository> _users = new();
 
@@ -36,6 +37,9 @@ public class UserAuthenticationServiceTests
         var token = await service.LoginAsync(CreateDto(user.Name, "CorrectPassword"));
 
         Assert.Equal("generated-token", token);
+        _externalAuthenticationService.Verify(
+            externalService => externalService.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 
     [Fact]
@@ -69,18 +73,59 @@ public class UserAuthenticationServiceTests
     }
 
     [Fact]
-    public async Task LoginAsyncShouldRejectExternalAuthentication()
+    public async Task LoginAsyncShouldReturnTokenForValidExternalCredentials()
     {
+        var user = CreateUser("user@example.com");
+        _users.Setup(repository => repository.GetByNameWithRolesAsync(user.Name))
+            .ReturnsAsync(user);
+        _externalAuthenticationService
+            .Setup(externalService => externalService.AuthenticateAsync(user.Name, "ExternalPassword"))
+            .ReturnsAsync(true);
+        _jwtTokenService.Setup(service => service.GenerateToken(user))
+            .Returns("external-token");
         var service = CreateService();
-        var dto = CreateDto("Administrator", "Password");
+        var dto = CreateDto(user.Name, "ExternalPassword");
         dto.InternalAuth = false;
 
-        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
-            service.LoginAsync(dto));
+        var token = await service.LoginAsync(dto);
 
-        Assert.Equal("External authentication is not supported.", exception.Message);
-        _users.Verify(
-            repository => repository.GetByNameWithRolesAsync(It.IsAny<string>()),
+        Assert.Equal("external-token", token);
+        _passwordHashService.Verify(
+            passwordService => passwordService.VerifyPassword(It.IsAny<User>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task LoginAsyncShouldRejectInvalidExternalCredentials()
+    {
+        var user = CreateUser("user@example.com");
+        _users.Setup(repository => repository.GetByNameWithRolesAsync(user.Name))
+            .ReturnsAsync(user);
+        _externalAuthenticationService
+            .Setup(externalService => externalService.AuthenticateAsync(user.Name, "WrongPassword"))
+            .ReturnsAsync(false);
+        var service = CreateService();
+        var dto = CreateDto(user.Name, "WrongPassword");
+        dto.InternalAuth = false;
+
+        await Assert.ThrowsAsync<InvalidCredentialsException>(() => service.LoginAsync(dto));
+
+        _jwtTokenService.Verify(service => service.GenerateToken(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task LoginAsyncShouldNotCallExternalServiceWhenLocalUserDoesNotExist()
+    {
+        _users.Setup(repository => repository.GetByNameWithRolesAsync("missing@example.com"))
+            .ReturnsAsync((User?)null);
+        var service = CreateService();
+        var dto = CreateDto("missing@example.com", "Password");
+        dto.InternalAuth = false;
+
+        await Assert.ThrowsAsync<InvalidCredentialsException>(() => service.LoginAsync(dto));
+
+        _externalAuthenticationService.Verify(
+            externalService => externalService.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -94,12 +139,12 @@ public class UserAuthenticationServiceTests
         };
     }
 
-    private static User CreateUser()
+    private static User CreateUser(string name = "Administrator")
     {
         return new User
         {
             Id = Guid.NewGuid(),
-            Name = "Administrator",
+            Name = name,
             PasswordHash = "password-hash",
         };
     }
@@ -109,6 +154,7 @@ public class UserAuthenticationServiceTests
         return new UserAuthenticationService(
             _unitOfWork.Object,
             _passwordHashService.Object,
-            _jwtTokenService.Object);
+            _jwtTokenService.Object,
+            _externalAuthenticationService.Object);
     }
 }

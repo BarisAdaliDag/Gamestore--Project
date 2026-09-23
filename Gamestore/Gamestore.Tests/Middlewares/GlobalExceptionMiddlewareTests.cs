@@ -21,4 +21,19 @@ public class GlobalExceptionMiddlewareTests
 
         Assert.Equal(StatusCodes.Status409Conflict, context.Response.StatusCode);
     }
+
+    [Fact]
+    public async Task InvokeAsyncShouldReturnServiceUnavailableWhenExternalAuthenticationIsUnavailable()
+    {
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        var middleware = new GlobalExceptionMiddleware(
+            _ => throw new ExternalAuthenticationUnavailableException(
+                new HttpRequestException("Connection failed.")),
+            Mock.Of<ILogger<GlobalExceptionMiddleware>>());
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, context.Response.StatusCode);
+    }
 }

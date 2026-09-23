@@ -16,3 +16,6 @@ dotnet run `
 .\WebApi.exe
 
   "applicationUrl": "https://localhost:7177;http://localhost:5295",
+
+  cd AuthService
+.\AuthService.exe --urls http://localhost:5037

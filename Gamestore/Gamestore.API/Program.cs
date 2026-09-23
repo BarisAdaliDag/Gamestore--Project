@@ -4,6 +4,7 @@ using Gamestore.API.MapperResolvers;
 using Gamestore.API.Middlewares;
 using Gamestore.BLL.DependencyResolvers;
 using Gamestore.BLL.Services.Abstract;
+using Gamestore.BLL.Services.Concrete;
 using Gamestore.DAL;
 using Serilog;
 
@@ -54,6 +55,16 @@ public static class Program
                 var baseUrl = builder.Configuration["PaymentService:BaseUrl"]
                     ?? throw new InvalidOperationException(
                         "PaymentService:BaseUrl configuration is required.");
+
+                client.BaseAddress = new Uri(baseUrl);
+                client.Timeout = TimeSpan.FromSeconds(10);
+            });
+
+            builder.Services.AddHttpClient(ExternalAuthenticationService.HttpClientName, client =>
+            {
+                var baseUrl = builder.Configuration["AuthService:BaseUrl"]
+                    ?? throw new InvalidOperationException(
+                        "AuthService:BaseUrl configuration is required.");
 
                 client.BaseAddress = new Uri(baseUrl);
                 client.Timeout = TimeSpan.FromSeconds(10);
